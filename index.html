@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Apex Auto Parts</title>
   
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-  
   <style>
     /* Global Styles */
     body { 
@@ -470,20 +466,31 @@
     </section>
   </main>
 
-  <script defer>
-    // Firebase Initialization
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
-      apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc",
+      apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc", // This key has been replaced.
       authDomain: "apex-ad8c0.firebaseapp.com",
       projectId: "apex-ad8c0",
       storageBucket: "apex-ad8c0.firebasestorage.app",
       messagingSenderId: "243749227658",
-      appId: "1:243749227658:web:3ac6fba9aac3105abcb173"
+      appId: "1:243749227658:web:3ac6fba9aac3105abcb173",
+      measurementId: "G-SKZY7WC4E3"
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore(); 
 
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app); // Initialized analytics
+    const auth = getAuth(app); // Get auth instance
+    const db = getFirestore(app); // Get firestore instance
+    
     // Amazon Affiliate Tag
     const amazonTag = "everythi09e02-20"; 
 
@@ -514,7 +521,7 @@
 
 
     // Page Navigation
-    function showPage(id) {
+    window.showPage = function(id) { // Made global to be accessible from inline onclick
       document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
       document.getElementById(id).classList.add("active");
 
@@ -525,7 +532,7 @@
     }
 
     // Auth State Listener
-    auth.onAuthStateChanged(user => {
+    onAuthStateChanged(auth, user => { // Use onAuthStateChanged with auth instance
       const emailSpan = document.getElementById("userEmail");
       if (user) {
         emailSpan.textContent = `Logged in as: ${user.email}`;
@@ -544,52 +551,58 @@
     });
 
     // Login
-    document.getElementById("loginForm").addEventListener("submit", e => {
+    document.getElementById("loginForm").addEventListener("submit", async (e) => { // Added async
       e.preventDefault();
       const loginEmail = document.getElementById("loginEmail");
       const loginPass = document.getElementById("loginPass");
-      auth.signInWithEmailAndPassword(loginEmail.value, loginPass.value)
-        .then(() => {
-          alert("Login successful");
-          showPage("garage");
-        })
-        .catch(err => alert("Login error: " + err.message));
+      try {
+        await signInWithEmailAndPassword(auth, loginEmail.value, loginPass.value); // Use signInWithEmailAndPassword with auth instance
+        alert("Login successful");
+        showPage("garage");
+      } catch (err) {
+        alert("Login error: " + err.message);
+      }
     });
 
     // Register
-    document.getElementById("registerForm").addEventListener("submit", e => {
+    document.getElementById("registerForm").addEventListener("submit", async (e) => { // Added async
       e.preventDefault();
       const regEmail = document.getElementById("regEmail");
       const regPass = document.getElementById("regPass");
-      auth.createUserWithEmailAndPassword(regEmail.value, regPass.value)
-        .then(() => {
-          alert("Registered successfully!");
-          showPage("garage");
-        })
-        .catch(err => alert("Registration error: " + err.message));
+      try {
+        await createUserWithEmailAndPassword(auth, regEmail.value, regPass.value); // Use createUserWithEmailAndPassword with auth instance
+        alert("Registered successfully!");
+        showPage("garage");
+      } catch (err) {
+        alert("Registration error: " + err.message);
+      }
     });
 
     // Google Login
-    function googleLogin() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .then(() => {
-          alert("Google login successful");
-          showPage("garage");
-        })
-        .catch(err => alert("Google login error: " + err.message));
+    window.googleLogin = async function() { // Made global
+      const provider = new GoogleAuthProvider(); // Use GoogleAuthProvider
+      try {
+        await signInWithPopup(auth, provider); // Use signInWithPopup with auth instance
+        alert("Google login successful");
+        showPage("garage");
+      } catch (err) {
+        alert("Google login error: " + err.message);
+      }
     }
 
     // Logout
-    function logout() {
-      auth.signOut().then(() => {
+    window.logout = async function() { // Made global
+      try {
+        await signOut(auth); // Use signOut with auth instance
         alert("Logged out");
         showPage("auth");
-      });
+      } catch (err) {
+        alert("Logout error: " + err.message);
+      }
     }
 
     // Save to Firestore
-    document.getElementById("garageForm").addEventListener("submit", e => {
+    document.getElementById("garageForm").addEventListener("submit", async (e) => { // Added async
       e.preventDefault();
       const makeInput = document.getElementById("make"); 
       const modelInput = document.getElementById("model");
@@ -605,9 +618,10 @@
         return;
       }
 
-      db.collection("garages").doc(auth.currentUser.uid).set({
-        make, model, year, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
+      try {
+        await setDoc(doc(db, "garages", auth.currentUser.uid), { // Use doc, setDoc with db instance and serverTimestamp
+          make, model, year, timestamp: serverTimestamp()
+        });
         display.textContent = `Saved: ${year} ${make} ${model}`;
         alert("Vehicle saved successfully!");
         
@@ -621,13 +635,13 @@
         if (document.querySelector('.page.active')?.id === 'products') {
             loadVehicleForProducts();
         }
-      }).catch(err => {
+      } catch (err) {
         alert("Error saving vehicle: " + err.message);
-      });
+      }
     });
 
     // Load from Firestore for My Garage page
-    function loadVehicle() {
+    async function loadVehicle() { // Added async
       const display = document.getElementById("garageDisplay");
       const makeInput = document.getElementById("make");
       const modelInput = document.getElementById("model");
@@ -641,25 +655,24 @@
         return;
       }
 
-      db.collection("garages").doc(auth.currentUser.uid).get()
-        .then(doc => {
-          if (doc.exists) {
-            const data = doc.data();
-            display.textContent = `Saved: ${data.year} ${data.make} ${data.model}`;
-            makeInput.value = data.make;
-            modelInput.value = data.model;
-            yearInput.value = data.year;
-          } else {
-            display.textContent = "No vehicle saved yet.";
-            makeInput.value = "";
-            modelInput.value = "";
-            yearInput.value = "";
-          }
-        })
-        .catch(err => {
-          console.error("Error loading vehicle:", err);
-          display.textContent = "Error loading vehicle data.";
-        });
+      try {
+        const userDoc = await getDoc(doc(db, "garages", auth.currentUser.uid)); // Use getDoc with doc
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          display.textContent = `Saved: ${data.year} ${data.make} ${data.model}`;
+          makeInput.value = data.make;
+          modelInput.value = data.model;
+          yearInput.value = data.year;
+        } else {
+          display.textContent = "No vehicle saved yet.";
+          makeInput.value = "";
+          modelInput.value = "";
+          yearInput.value = "";
+        }
+      } catch (err) {
+        console.error("Error loading vehicle:", err);
+        display.textContent = "Error loading vehicle data.";
+      }
     }
 
     // Load Vehicle and generate product links for the Products page
@@ -678,9 +691,9 @@
         }
 
         try {
-            const doc = await db.collection("garages").doc(auth.currentUser.uid).get();
-            if (doc.exists) {
-                const data = doc.data();
+            const userDoc = await getDoc(doc(db, "garages", auth.currentUser.uid)); // Use getDoc with doc
+            if (userDoc.exists()) {
+                const data = userDoc.data();
                 const { year, make, model } = data;
                 
                 let htmlContent = `
@@ -721,7 +734,7 @@
     }
 
     // Specific Amazon Search Function
-    function searchAmazonSpecific(year, make, model, partType) {
+    window.searchAmazonSpecific = function(year, make, model, partType) { // Made global
         const query = `${partType} ${year} ${make} ${model}`;
         const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
         window.open(url, "_blank"); // Open in a new tab
