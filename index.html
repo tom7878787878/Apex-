@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Apex Auto Parts</title>
   
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
   <style>
     /* Global Styles */
     body { 
@@ -237,6 +241,17 @@
         border: 1px solid #ddd;
         border-radius: 5px;
         font-size: 1rem;
+        /* Add focus style */
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    form input[type="text"]:focus,
+    form input[type="email"]:focus,
+    form input[type="password"]:focus,
+    form input[type="number"]:focus,
+    form textarea:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
     }
     form textarea {
         resize: vertical;
@@ -250,10 +265,15 @@
         font-size: 1rem;
         border-radius: 5px;
         cursor: pointer;
-        transition: background-color 0.3s ease;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        outline: none; /* Remove default focus outline */
     }
     form button:hover {
         background: #0056b3;
+        transform: translateY(-1px); /* Slight lift on hover */
+    }
+    form button:focus {
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Focus style for buttons */
     }
     #auth form + form { /* Separate login/register forms */
         margin-top: 2rem;
@@ -295,6 +315,47 @@
         font-weight: bold;
         margin-bottom: 1.5rem;
         color: #e53935;
+    }
+
+    /* New Search input and button styling */
+    #products .general-search-section {
+        margin-top: 1.5rem;
+        text-align: center; /* Center the input and button */
+    }
+    #products .general-search-section input[type="text"] {
+        width: calc(100% - 120px); /* Adjust width for button */
+        max-width: 300px; /* Limit max width */
+        padding: 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 5px 0 0 5px; /* Rounded left, straight right */
+        font-size: 1rem;
+        vertical-align: middle; /* Align with button */
+        box-sizing: border-box; /* Include padding/border in width */
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    #products .general-search-section input[type="text"]:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+    #products .general-search-section button {
+        padding: 0.8rem 1.2rem;
+        background-color: #007bff; /* Blue search button */
+        color: white;
+        border: none;
+        border-radius: 0 5px 5px 0; /* Straight left, rounded right */
+        font-size: 1rem;
+        cursor: pointer;
+        vertical-align: middle; /* Align with input */
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        outline: none;
+    }
+    #products .general-search-section button:hover {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+    }
+    #products .general-search-section button:focus {
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
     }
 
     #products .category-buttons {
@@ -530,8 +591,15 @@
       }
     }
 
+    // Function to clear auth form fields
+    function clearAuthFields() {
+        document.getElementById("loginEmail").value = "";
+        document.getElementById("loginPass").value = "";
+        document.getElementById("regEmail").value = "";
+        document.getElementById("regPass").value = "";
+    }
+
     // Auth State Listener
-    // IMPORTANT: This listener is the single source of truth for user state.
     onAuthStateChanged(auth, user => {
       const emailSpan = document.getElementById("userEmail");
       if (user) {
@@ -544,6 +612,7 @@
         if (document.querySelector('.page.active')?.id === 'auth') {
           showPage('garage'); 
         }
+        clearAuthFields(); // Clear fields on successful login/registration by state change
       } else {
         emailSpan.textContent = "";
         // If the user logs out or is not logged in and on the garage page, redirect to auth
@@ -555,6 +624,7 @@
         document.getElementById("make").value = "";
         document.getElementById("model").value = "";
         document.getElementById("year").value = "";
+        clearAuthFields(); // Clear fields on logout
       }
     });
 
@@ -566,9 +636,7 @@
       try {
         await signInWithEmailAndPassword(auth, loginEmail.value, loginPass.value);
         alert("Login successful");
-        // The onAuthStateChanged listener will handle redirecting to garage
-        // You can remove the direct showPage here if the listener always handles it reliably
-        // showPage("garage"); // Consider removing this if onAuthStateChanged handles it
+        clearAuthFields(); // Clear fields immediately after successful login
       } catch (err) {
         alert("Login error: " + err.message);
       }
@@ -582,9 +650,7 @@
       try {
         await createUserWithEmailAndPassword(auth, regEmail.value, regPass.value);
         alert("Registered successfully!");
-        // The onAuthStateChanged listener will handle redirecting to garage
-        // You can remove the direct showPage here if the listener always handles it reliably
-        // showPage("garage"); // Consider removing this if onAuthStateChanged handles it
+        clearAuthFields(); // Clear fields immediately after successful registration
       } catch (err) {
         alert("Registration error: " + err.message);
       }
@@ -596,9 +662,7 @@
       try {
         await signInWithPopup(auth, provider);
         alert("Google login successful");
-        // The onAuthStateChanged listener will handle redirecting to garage
-        // You can remove the direct showPage here if the listener always handles it reliably
-        // showPage("garage"); // Consider removing this if onAuthStateChanged handles it
+        clearAuthFields(); // Clear fields after Google login (though Google handles its own inputs)
       } catch (err) {
         alert("Google login error: " + err.message);
       }
@@ -609,8 +673,7 @@
       try {
         await signOut(auth);
         alert("Logged out");
-        // The onAuthStateChanged listener will handle redirecting to auth
-        // showPage("auth"); // Consider removing this if onAuthStateChanged handles it
+        clearAuthFields(); // Clear fields on logout
       } catch (err) {
         alert("Logout error: " + err.message);
       }
@@ -625,7 +688,6 @@
       const display = document.getElementById("garageDisplay");
 
       if (!auth.currentUser) {
-        // This is the specific error you're seeing. It means auth.currentUser is null.
         alert("Please log in to save your vehicle.");
         console.warn("Attempted to save vehicle without being logged in.");
         return;
@@ -712,17 +774,24 @@
             const userDoc = await getDoc(doc(db, "garages", auth.currentUser.uid));
             if (userDoc.exists()) {
                 const data = userDoc.data();
-                const { year, make, model } = data;
+                const { year, make, model } = data; // Destructure vehicle data here
                 
                 let htmlContent = `
                     <h3 style="text-align: center;">Parts for Your ${year} ${make} ${model}</h3>
                     <div class="vehicle-info">Your Saved Vehicle: ${year} ${make} ${model}</div>
-                    <p style="text-align: center; margin-bottom: 1.5rem;">Click a category below to search Amazon directly for your vehicle:</p>
+                    
+                    <div class="general-search-section">
+                        <label for="generalProductSearch" class="sr-only">Search Parts by Keyword</label>
+                        <input type="text" id="generalProductSearch" placeholder="Search for any part (e.g., 'alternator')" />
+                        <button onclick="searchAmazonGeneral('${year}', '${make}', '${model}')">Search</button>
+                    </div>
+
+                    <p style="text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;">Or click a category below to search Amazon directly for your vehicle:</p>
                     <div class="category-buttons">
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Brake Pads')">Brake Pads</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Oil Filter')">Oil Filter</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Air Filter')">Air Filter</button>
-                        <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Spark Plugs')">Spark Plug</button>
+                        <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Spark Plugs')">Spark Plugs</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Suspension Kit')">Suspension Kit</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Headlights')">Headlights</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Tail Lights')">Tail Lights</button>
@@ -732,6 +801,17 @@
                         </div>
                 `;
                 productContentDiv.innerHTML = htmlContent;
+
+                // IMPORTANT: Add event listener here because the elements are created dynamically
+                // This ensures hitting 'Enter' in the search box also triggers the search
+                document.getElementById('generalProductSearch').addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault(); // Prevent form submission if input is inside a form
+                        // Pass vehicle data from the loaded data
+                        searchAmazonGeneral(year, make, model);
+                    }
+                });
+
             } else {
                 productContentDiv.innerHTML = `
                     <div class="no-vehicle-message">
@@ -751,12 +831,29 @@
         }
     }
 
-    // Specific Amazon Search Function
+    // Specific Amazon Search Function (remains unchanged and correctly uses affiliate tag)
     window.searchAmazonSpecific = function(year, make, model, partType) {
         const query = `${partType} ${year} ${make} ${model}`;
         const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
         window.open(url, "_blank");
     }
+
+    // General Amazon Search Function (Now filters by vehicle and uses affiliate tag)
+    window.searchAmazonGeneral = function(year, make, model) { // Added vehicle parameters
+        const searchInput = document.getElementById('generalProductSearch');
+        let query = searchInput.value.trim(); // User's input
+
+        if (query) {
+            // Combine user's query with vehicle info for a more specific search
+            query = `${query} ${year} ${make} ${model}`; 
+            const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+            window.open(url, "_blank");
+            searchInput.value = ''; // Clear the search input after search
+        } else {
+            alert("Please enter a search term.");
+        }
+    }
+
 
     // Initial page load
     showPage('home');
