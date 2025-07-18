@@ -474,9 +474,8 @@
     import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     
     // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
-      apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc", // This key has been replaced.
+      apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc", 
       authDomain: "apex-ad8c0.firebaseapp.com",
       projectId: "apex-ad8c0",
       storageBucket: "apex-ad8c0.firebasestorage.app",
@@ -487,9 +486,9 @@
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app); // Initialized analytics
-    const auth = getAuth(app); // Get auth instance
-    const db = getFirestore(app); // Get firestore instance
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
     
     // Amazon Affiliate Tag
     const amazonTag = "everythi09e02-20"; 
@@ -499,11 +498,10 @@
     const navLinks = document.getElementById('navLinks');
 
     hamburgerMenu.addEventListener('click', (event) => {
-        event.stopPropagation(); // Prevent document click from closing immediately
+        event.stopPropagation();
         navLinks.classList.toggle('active');
     });
 
-    // Close mobile menu when a link is clicked
     navLinks.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => {
             if (navLinks.classList.contains('active')) {
@@ -512,7 +510,6 @@
         });
     });
 
-    // Close mobile menu when clicking outside of it
     document.addEventListener('click', (event) => {
         if (!navLinks.contains(event.target) && !hamburgerMenu.contains(event.target) && navLinks.classList.contains('active')) {
             navLinks.classList.remove('active');
@@ -521,25 +518,31 @@
 
 
     // Page Navigation
-    window.showPage = function(id) { // Made global to be accessible from inline onclick
+    window.showPage = function(id) {
       document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
       document.getElementById(id).classList.add("active");
 
-      // Special handling for the products page
+      // Special handling for the products page and garage page
       if (id === 'products') {
         loadVehicleForProducts();
+      } else if (id === 'garage') {
+        loadVehicle(); // Ensure vehicle is loaded when navigating to garage
       }
     }
 
     // Auth State Listener
-    onAuthStateChanged(auth, user => { // Use onAuthStateChanged with auth instance
+    // IMPORTANT: This listener is the single source of truth for user state.
+    onAuthStateChanged(auth, user => {
       const emailSpan = document.getElementById("userEmail");
       if (user) {
         emailSpan.textContent = `Logged in as: ${user.email}`;
-        loadVehicle(); // Load vehicle info for My Garage page
-        // Automatically switch to garage or home after login/load if currently on auth page
+        // Only load vehicle if the current page is garage, or if just logged in from auth page
+        if (document.querySelector('.page.active')?.id === 'garage' || document.querySelector('.page.active')?.id === 'auth') {
+             loadVehicle();
+        }
+        // If coming from auth page, automatically switch.
         if (document.querySelector('.page.active')?.id === 'auth') {
-          showPage('garage'); // Or 'home' if you prefer
+          showPage('garage'); 
         }
       } else {
         emailSpan.textContent = "";
@@ -547,101 +550,113 @@
         if (document.querySelector(".page.active")?.id === "garage") {
           showPage("auth");
         }
+        // Clear garage display if user logs out
+        document.getElementById("garageDisplay").textContent = "";
+        document.getElementById("make").value = "";
+        document.getElementById("model").value = "";
+        document.getElementById("year").value = "";
       }
     });
 
     // Login
-    document.getElementById("loginForm").addEventListener("submit", async (e) => { // Added async
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const loginEmail = document.getElementById("loginEmail");
       const loginPass = document.getElementById("loginPass");
       try {
-        await signInWithEmailAndPassword(auth, loginEmail.value, loginPass.value); // Use signInWithEmailAndPassword with auth instance
+        await signInWithEmailAndPassword(auth, loginEmail.value, loginPass.value);
         alert("Login successful");
-        showPage("garage");
+        // The onAuthStateChanged listener will handle redirecting to garage
+        // You can remove the direct showPage here if the listener always handles it reliably
+        // showPage("garage"); // Consider removing this if onAuthStateChanged handles it
       } catch (err) {
         alert("Login error: " + err.message);
       }
     });
 
     // Register
-    document.getElementById("registerForm").addEventListener("submit", async (e) => { // Added async
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const regEmail = document.getElementById("regEmail");
       const regPass = document.getElementById("regPass");
       try {
-        await createUserWithEmailAndPassword(auth, regEmail.value, regPass.value); // Use createUserWithEmailAndPassword with auth instance
+        await createUserWithEmailAndPassword(auth, regEmail.value, regPass.value);
         alert("Registered successfully!");
-        showPage("garage");
+        // The onAuthStateChanged listener will handle redirecting to garage
+        // You can remove the direct showPage here if the listener always handles it reliably
+        // showPage("garage"); // Consider removing this if onAuthStateChanged handles it
       } catch (err) {
         alert("Registration error: " + err.message);
       }
     });
 
     // Google Login
-    window.googleLogin = async function() { // Made global
-      const provider = new GoogleAuthProvider(); // Use GoogleAuthProvider
+    window.googleLogin = async function() {
+      const provider = new GoogleAuthProvider();
       try {
-        await signInWithPopup(auth, provider); // Use signInWithPopup with auth instance
+        await signInWithPopup(auth, provider);
         alert("Google login successful");
-        showPage("garage");
+        // The onAuthStateChanged listener will handle redirecting to garage
+        // You can remove the direct showPage here if the listener always handles it reliably
+        // showPage("garage"); // Consider removing this if onAuthStateChanged handles it
       } catch (err) {
         alert("Google login error: " + err.message);
       }
     }
 
     // Logout
-    window.logout = async function() { // Made global
+    window.logout = async function() {
       try {
-        await signOut(auth); // Use signOut with auth instance
+        await signOut(auth);
         alert("Logged out");
-        showPage("auth");
+        // The onAuthStateChanged listener will handle redirecting to auth
+        // showPage("auth"); // Consider removing this if onAuthStateChanged handles it
       } catch (err) {
         alert("Logout error: " + err.message);
       }
     }
 
     // Save to Firestore
-    document.getElementById("garageForm").addEventListener("submit", async (e) => { // Added async
+    document.getElementById("garageForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const makeInput = document.getElementById("make"); 
       const modelInput = document.getElementById("model");
       const yearInput = document.getElementById("year");
       const display = document.getElementById("garageDisplay");
 
+      if (!auth.currentUser) {
+        // This is the specific error you're seeing. It means auth.currentUser is null.
+        alert("Please log in to save your vehicle.");
+        console.warn("Attempted to save vehicle without being logged in.");
+        return;
+      }
+
       const make = makeInput.value; 
       const model = modelInput.value;
       const year = yearInput.value;
 
-      if (!auth.currentUser) {
-        alert("Please log in to save your vehicle.");
-        return;
-      }
-
       try {
-        await setDoc(doc(db, "garages", auth.currentUser.uid), { // Use doc, setDoc with db instance and serverTimestamp
+        await setDoc(doc(db, "garages", auth.currentUser.uid), {
           make, model, year, timestamp: serverTimestamp()
         });
         display.textContent = `Saved: ${year} ${make} ${model}`;
         alert("Vehicle saved successfully!");
         
-        // --- Clears the form fields after successful save ---
         makeInput.value = '';
         modelInput.value = '';
         yearInput.value = '';
-        // --- End of form clearing ---
 
-        // Reload products page content if user is on it and saves vehicle
         if (document.querySelector('.page.active')?.id === 'products') {
             loadVehicleForProducts();
         }
       } catch (err) {
         alert("Error saving vehicle: " + err.message);
+        console.error("Error saving vehicle:", err);
       }
     });
 
     // Load from Firestore for My Garage page
-    async function loadVehicle() { // Added async
+    async function loadVehicle() {
       const display = document.getElementById("garageDisplay");
       const makeInput = document.getElementById("make");
       const modelInput = document.getElementById("model");
@@ -652,22 +667,25 @@
         makeInput.value = "";
         modelInput.value = "";
         yearInput.value = "";
+        console.log("No current user to load vehicle for.");
         return;
       }
 
       try {
-        const userDoc = await getDoc(doc(db, "garages", auth.currentUser.uid)); // Use getDoc with doc
+        const userDoc = await getDoc(doc(db, "garages", auth.currentUser.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
           display.textContent = `Saved: ${data.year} ${data.make} ${data.model}`;
           makeInput.value = data.make;
           modelInput.value = data.model;
           yearInput.value = data.year;
+          console.log("Vehicle loaded:", data);
         } else {
           display.textContent = "No vehicle saved yet.";
           makeInput.value = "";
           modelInput.value = "";
           yearInput.value = "";
+          console.log("No vehicle data found for user.");
         }
       } catch (err) {
         console.error("Error loading vehicle:", err);
@@ -678,7 +696,7 @@
     // Load Vehicle and generate product links for the Products page
     async function loadVehicleForProducts() {
         const productContentDiv = document.getElementById('productContent');
-        productContentDiv.innerHTML = '<h3>Loading your vehicle data...</h3>'; // Loading message
+        productContentDiv.innerHTML = '<h3>Loading your vehicle data...</h3>';
 
         if (!auth.currentUser) {
             productContentDiv.innerHTML = `
@@ -691,7 +709,7 @@
         }
 
         try {
-            const userDoc = await getDoc(doc(db, "garages", auth.currentUser.uid)); // Use getDoc with doc
+            const userDoc = await getDoc(doc(db, "garages", auth.currentUser.uid));
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 const { year, make, model } = data;
@@ -704,7 +722,7 @@
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Brake Pads')">Brake Pads</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Oil Filter')">Oil Filter</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Air Filter')">Air Filter</button>
-                        <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Spark Plugs')">Spark Plugs</button>
+                        <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Spark Plugs')">Spark Plug</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Suspension Kit')">Suspension Kit</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Headlights')">Headlights</button>
                         <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Tail Lights')">Tail Lights</button>
@@ -734,10 +752,10 @@
     }
 
     // Specific Amazon Search Function
-    window.searchAmazonSpecific = function(year, make, model, partType) { // Made global
+    window.searchAmazonSpecific = function(year, make, model, partType) {
         const query = `${partType} ${year} ${make} ${model}`;
         const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
-        window.open(url, "_blank"); // Open in a new tab
+        window.open(url, "_blank");
     }
 
     // Initial page load
