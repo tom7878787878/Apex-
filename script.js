@@ -1,9 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; // NEW: Added sendPasswordResetEmail
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; // NEW: Added updatePassword (for future use)
 import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-// Removed: import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 
 // Your web app's Firebase configuration
@@ -22,7 +21,6 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// Removed: const storage = getStorage(app);
 
 
 // Amazon Affiliate Tag
@@ -52,6 +50,8 @@ window.showPage = function(id) {
         renderSavedVehicles(); // Use new render function for garage
     } else if (id === 'wishlist') { 
         loadWishlist(); // Call loadWishlist when navigating to the wishlist page
+    } else if (id === 'profile') { // NEW: Profile page specific logic
+        loadProfile();
     }
 }
 
@@ -182,16 +182,20 @@ onAuthStateChanged(auth, user => {
         // Always load vehicles/wishlist after auth state change, especially on page load
         renderSavedVehicles(); // Reload garage
         loadWishlist(); // Reload wishlist
+        loadProfile(); // NEW: Load profile data on auth change
     } else {
         emailSpan.textContent = "";
-        // If the user logs out or is not logged in and on garage/wishlist page, redirect to auth
-        if (document.querySelector(".page.active")?.id === "garage" || document.querySelector(".page.active")?.id === "wishlist") {
+        // If the user logs out or is not logged in and on garage/wishlist/profile page, redirect to auth
+        if (document.querySelector(".page.active")?.id === "garage" || 
+            document.querySelector(".page.active")?.id === "wishlist" ||
+            document.querySelector(".page.active")?.id === "profile") { // NEW: Added profile redirect
             showPage("auth");
         }
         // Clear local displays if user logs out (Firestore will be empty if not public)
         clearAuthFields(); 
         renderSavedVehicles(); // Clear garage display
         loadWishlist(); // Clear wishlist display
+        loadProfile(); // NEW: Clear profile display
     }
 });
 
@@ -283,7 +287,6 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
 });
 
 // NEW: Password Strength Indicator (for Registration Form)
-const regPassInput = document.getElementById('regPass'); // Re-declare or ensure global scope
 const passwordStrengthIndicator = document.createElement('div');
 passwordStrengthIndicator.id = 'passwordStrength';
 passwordStrengthIndicator.className = 'password-strength';
@@ -425,7 +428,6 @@ if (toggleRegPassBtn) {
 const garageForm = document.getElementById('garageForm');
 const savedVehiclesContainer = document.getElementById('savedVehicles');
 const noVehiclesMessage = document.getElementById('noVehiclesMessage');
-// Removed: const vehicleImageInput = document.getElementById('vehicleImage'); 
 const MAX_VEHICLES = 3; // Maximum number of vehicles a user can save
 
 // Key for Firestore document field holding vehicles (not localStorage directly)
@@ -538,14 +540,11 @@ garageForm.addEventListener('submit', async (e) => {
     const make = makeInput.value.trim(); 
     const model = modelInput.value.trim();
     const year = parseInt(yearInput.value);
-    // Removed: const imageFile = vehicleImageInput.files[0]; 
 
     let isValid = true;
     if (!make) { displayFormError('makeError', 'Make is required.'); isValid = false; }
     if (!model) { displayFormError('modelError', 'Model is required.'); isValid = false; }
     if (isNaN(year) || year < 1900 || year > 2100) { displayFormError('yearError', 'Please enter a valid year (e.g., 2023).'); isValid = false; }
-    // Removed: Basic image validation
-
 
     if (!isValid) {
         showNotification('Please correct the errors in the form.', 'error');
@@ -553,7 +552,6 @@ garageForm.addEventListener('submit', async (e) => {
     }
 
     setButtonLoading(submitBtn, true); 
-    // Removed: let imageUrl = '';
 
     try {
         const vehicles = await getSavedVehiclesFromFirestore();
@@ -563,7 +561,7 @@ garageForm.addEventListener('submit', async (e) => {
             return; // Stop execution
         }
 
-        const newVehicle = { make, model, year /* Removed: , imageUrl */ }; 
+        const newVehicle = { make, model, year }; 
         // Use arrayUnion to add the new vehicle to the array in Firestore
         await updateDoc(getUserGarageDocRef(), {
             [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle),
@@ -862,6 +860,65 @@ async function loadWishlist() {
         });
     }
 }
+
+// --- User Profile Page Logic (NEW) ---
+const profileEmailSpan = document.getElementById('profileEmail');
+const updateProfileBtn = document.getElementById('updateProfileBtn');
+const changePasswordBtn = document.getElementById('changePasswordBtn');
+
+function loadProfile() {
+    const user = auth.currentUser;
+    if (user) {
+        profileEmailSpan.textContent = user.email;
+        // If you store more profile data in Firestore, you would fetch it here:
+        // const userDocRef = doc(db, "users", user.uid);
+        // getDoc(userDocRef).then(docSnap => {
+        //     if (docSnap.exists()) {
+        //         const data = docSnap.data();
+        //         // Example: document.getElementById('profileJoinedDate').textContent = new Date(data.joinedDate.toDate()).toLocaleDateString();
+        //     }
+        // });
+    } else {
+        profileEmailSpan.textContent = "Not logged in";
+        // Redirect to auth page if not logged in when trying to access profile directly
+        if (document.querySelector('.page.active')?.id === 'profile') {
+            showPage('auth');
+            showNotification('Please log in to view your profile.', 'info');
+        }
+    }
+}
+
+// Placeholder for update profile functionality (future)
+if (updateProfileBtn) {
+    updateProfileBtn.addEventListener('click', () => {
+        showNotification("Update Profile functionality is coming soon!", "info");
+        console.log("Update Profile button clicked.");
+        // Here you would typically open a modal or navigate to a form
+        // to allow users to update display name, etc.
+    });
+}
+
+// Placeholder for change password functionality (future)
+if (changePasswordBtn) {
+    changePasswordBtn.addEventListener('click', async () => {
+        const user = auth.currentUser;
+        if (user) {
+            showNotification("Change Password functionality: A password reset email will be sent.", "info");
+            console.log("Change Password button clicked.");
+            // This is similar to forgot password, but typically triggered from a logged-in state
+            try {
+                await sendPasswordResetEmail(auth, user.email);
+                showNotification(`Password change email sent to ${user.email}. Please check your inbox.`, 'success', 7000);
+            } catch (error) {
+                showNotification(`Failed to send password change email: ${error.message}`, 'error', 7000);
+                console.error("Change password email error:", error);
+            }
+        } else {
+            showNotification("Please log in to change your password.", "error");
+        }
+    });
+}
+
 
 // --- Contact Form Submission Handling (Formspree Integration) ---
 document.getElementById('contactForm').addEventListener('submit', async function(e) {

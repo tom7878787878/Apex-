@@ -22,7 +22,8 @@
         <li><a href="#" onclick="showPage('home')">Home</a></li>
         <li><a href="#" onclick="showPage('products')">Products</a></li>
         <li><a href="#" onclick="showPage('garage')">My Garage</a></li>
-        <li><a href="#" onclick="showPage('wishlist')">My Wishlist</a></li> <li><a href="#" onclick="showPage('contact')">Contact</a></li>
+        <li><a href="#" onclick="showPage('wishlist')">My Wishlist</a></li>
+        <li><a href="#" onclick="showPage('profile')">My Profile</a></li> <li><a href="#" onclick="showPage('contact')">Contact</a></li>
       </ul>
       <span id="userEmail" aria-live="polite"></span>
       <div class="hamburger-menu" id="hamburgerMenu" role="button" aria-controls="navLinks" aria-expanded="false" tabindex="0">
@@ -135,6 +136,17 @@
                 <p class="no-items-message">Please log in to see your wishlist, or add some products from the Products page!</p>
             </div>
             <button id="clearWishlistBtn" style="margin-top: 2rem;">Clear Wishlist</button>
+        </div>
+    </section>
+
+    <section id="profile" class="page"> <div class="container">
+            <h2>My Profile</h2>
+            <div class="profile-info-card">
+                <h3>Account Information</h3>
+                <p><strong>Email:</strong> <span id="profileEmail">Not logged in</span></p>
+                <button id="updateProfileBtn">Update Profile (Coming Soon)</button>
+                <button id="changePasswordBtn">Change Password</button>
+            </div>
         </div>
     </section>
 
