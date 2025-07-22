@@ -1,15 +1,17 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; // NEW: Added sendPasswordResetEmail
 import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// Removed: import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc", 
   authDomain: "apex-ad8c0.firebaseapp.com",
   projectId: "apex-ad8c0",
-  storageBucket: "apex-ad8c0.firebasestorage.app",
+  storageBucket: "apex-ad8c0.firebasestorage.app", 
   messagingSenderId: "243749227658",
   appId: "1:243749227658:web:3ac6fba9aac3105abcb173",
   measurementId: "G-SKZY7WC4E3"
@@ -20,6 +22,8 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// Removed: const storage = getStorage(app);
+
 
 // Amazon Affiliate Tag
 const amazonTag = "everythi09e02-20"; 
@@ -130,6 +134,12 @@ function clearAuthFields() {
     document.getElementById("loginPass").value = "";
     document.getElementById("regEmail").value = "";
     document.getElementById("regPass").value = "";
+    // NEW: Clear password strength indicator
+    const passwordStrengthIndicator = document.getElementById('passwordStrength');
+    if (passwordStrengthIndicator) {
+        passwordStrengthIndicator.textContent = '';
+        passwordStrengthIndicator.className = 'password-strength'; // Reset class
+    }
     clearFormErrors('loginForm');
     clearFormErrors('registerForm');
 }
@@ -241,6 +251,9 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
     let isValid = true;
     if (!regEmailInput.value) { displayFormError('regEmailError', 'Email is required.'); isValid = false; }
     if (!regPassInput.value) { displayFormError('regPassError', 'Password is required.'); isValid = false; }
+    if (regPassInput.value.length < 6) { displayFormError('regPassError', 'Password must be at least 6 characters long.'); isValid = false; } // Basic length check
+
+
     if (!isValid) { showNotification('Please fill in all required fields.', 'error'); return; }
 
     setButtonLoading(submitBtn, true); 
@@ -268,6 +281,41 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
         setButtonLoading(submitBtn, false); 
     }
 });
+
+// NEW: Password Strength Indicator (for Registration Form)
+const regPassInput = document.getElementById('regPass'); // Re-declare or ensure global scope
+const passwordStrengthIndicator = document.createElement('div');
+passwordStrengthIndicator.id = 'passwordStrength';
+passwordStrengthIndicator.className = 'password-strength';
+if (regPassInput) { // Ensure element exists before appending
+    regPassInput.parentNode.insertBefore(passwordStrengthIndicator, regPassInput.nextSibling);
+    // Add event listener for real-time feedback
+    regPassInput.addEventListener('input', () => {
+        const password = regPassInput.value;
+        const strength = checkPasswordStrength(password);
+        updatePasswordStrengthIndicator(strength);
+    });
+}
+
+function checkPasswordStrength(password) {
+    let score = 0;
+    if (password.length > 5) score++;
+    if (password.length > 7) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++; // Special characters
+
+    if (score < 3) return 'weak';
+    if (score < 5) return 'medium';
+    return 'strong';
+}
+
+function updatePasswordStrengthIndicator(strength) {
+    passwordStrengthIndicator.textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+    passwordStrengthIndicator.className = `password-strength ${strength}`;
+}
+
 
 // --- Google Login ---
 window.googleLogin = async function() {
@@ -308,11 +356,52 @@ window.logout = async function() {
     }
 }
 
+// --- Forgot Password ---
+const forgotPasswordLink = document.querySelector('.forgot-password-link');
+if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const loginEmailInput = document.getElementById('loginEmail');
+        const email = loginEmailInput.value.trim();
+
+        if (!email) {
+            displayFormError('loginEmailError', 'Please enter your email to reset password.');
+            showNotification('Please enter your email for password reset.', 'error');
+            return;
+        }
+
+        setButtonLoading(forgotPasswordLink, true); // Apply loading to the link/button
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            showNotification(`Password reset email sent to ${email}. Please check your inbox.`, 'success', 7000);
+            displayFormError('loginEmailError', ''); // Clear email error if successful
+            loginEmailInput.value = ''; // Clear email field
+        } catch (error) {
+            let errorMessage = "Failed to send reset email.";
+            if (error.code === 'auth/invalid-email') {
+                errorMessage = "Invalid email address.";
+                displayFormError('loginEmailError', errorMessage);
+            } else if (error.code === 'auth/user-not-found') {
+                errorMessage = "No user found with that email.";
+                displayFormError('loginEmailError', errorMessage);
+            } else {
+                errorMessage = error.message;
+            }
+            showNotification(`Password reset error: ${errorMessage}`, 'error', 7000);
+            console.error("Password reset error:", error);
+        } finally {
+            setButtonLoading(forgotPasswordLink, false);
+        }
+    });
+}
+
+
 // --- Password Visibility Toggles ---
 const toggleLoginPassBtn = document.getElementById('toggleLoginPass');
 const loginPassInput = document.getElementById('loginPass');
 const toggleRegPassBtn = document.getElementById('toggleRegPass');
-const regPassInput = document.getElementById('regPass');
+// const regPassInput = document.getElementById('regPass'); // Already declared above
 
 if (toggleLoginPassBtn) {
     toggleLoginPassBtn.addEventListener('click', () => {
@@ -336,6 +425,7 @@ if (toggleRegPassBtn) {
 const garageForm = document.getElementById('garageForm');
 const savedVehiclesContainer = document.getElementById('savedVehicles');
 const noVehiclesMessage = document.getElementById('noVehiclesMessage');
+// Removed: const vehicleImageInput = document.getElementById('vehicleImage'); 
 const MAX_VEHICLES = 3; // Maximum number of vehicles a user can save
 
 // Key for Firestore document field holding vehicles (not localStorage directly)
@@ -381,6 +471,7 @@ async function renderSavedVehicles() {
         vehicles.forEach((vehicle, index) => {
             const vehicleCard = document.createElement('div');
             vehicleCard.className = 'vehicle-card';
+            // Removed: Image display logic
             vehicleCard.innerHTML = `
                 <div class="vehicle-info">
                     <h4>${vehicle.year} ${vehicle.make} ${vehicle.model}</h4>
@@ -447,11 +538,14 @@ garageForm.addEventListener('submit', async (e) => {
     const make = makeInput.value.trim(); 
     const model = modelInput.value.trim();
     const year = parseInt(yearInput.value);
+    // Removed: const imageFile = vehicleImageInput.files[0]; 
 
     let isValid = true;
     if (!make) { displayFormError('makeError', 'Make is required.'); isValid = false; }
     if (!model) { displayFormError('modelError', 'Model is required.'); isValid = false; }
     if (isNaN(year) || year < 1900 || year > 2100) { displayFormError('yearError', 'Please enter a valid year (e.g., 2023).'); isValid = false; }
+    // Removed: Basic image validation
+
 
     if (!isValid) {
         showNotification('Please correct the errors in the form.', 'error');
@@ -459,6 +553,7 @@ garageForm.addEventListener('submit', async (e) => {
     }
 
     setButtonLoading(submitBtn, true); 
+    // Removed: let imageUrl = '';
 
     try {
         const vehicles = await getSavedVehiclesFromFirestore();
@@ -468,7 +563,7 @@ garageForm.addEventListener('submit', async (e) => {
             return; // Stop execution
         }
 
-        const newVehicle = { make, model, year };
+        const newVehicle = { make, model, year /* Removed: , imageUrl */ }; 
         // Use arrayUnion to add the new vehicle to the array in Firestore
         await updateDoc(getUserGarageDocRef(), {
             [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle),
