@@ -1,16 +1,16 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; 
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc", 
+  apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc",
   authDomain: "apex-ad8c0.firebaseapp.com",
   projectId: "apex-ad8c0",
-  storageBucket: "apex-ad8c0.firebasestorage.app", 
+  storageBucket: "apex-ad8c0.firebasestorage.app",
   messagingSenderId: "243749227658",
   appId: "1:243749227658:web:3ac6fba9aac3105abcb173",
   measurementId: "G-SKZY7WC4E3"
@@ -24,7 +24,7 @@ const db = getFirestore(app);
 
 
 // Amazon Affiliate Tag
-const amazonTag = "everythi09e02-20"; 
+const amazonTag = "everythi09e02-20";
 
 // --- Global DOM Elements (assigned in DOMContentLoaded) ---
 let navLinks;
@@ -36,7 +36,7 @@ let notificationContainer;
 let loginForm;
 let loginEmailInput;
 let loginPassInput;
-let regForm; 
+let regForm;
 let regEmailInput;
 let regPassInput;
 let googleLoginBtn;
@@ -44,7 +44,7 @@ let logoutBtn;
 let toggleLoginPassBtn;
 let toggleRegPassBtn;
 let forgotPasswordLink;
-let passwordStrengthIndicator; 
+let passwordStrengthIndicator;
 
 // --- Garage Form Elements (assigned in DOMContentLoaded) ---
 let garageForm;
@@ -77,7 +77,7 @@ let selectedVehicleForSearch = null;
 
 // --- Page Navigation ---
 window.showPage = function(id) {
-    console.log(`Showing page: ${id}`); 
+    console.log(`Showing page: ${id}`);
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     const pageElement = document.getElementById(id);
     if (pageElement) {
@@ -86,7 +86,7 @@ window.showPage = function(id) {
         console.error(`Page element with ID '${id}' not found!`);
     }
 
-    if (hamburgerMenu && hamburgerMenu.classList.contains('active')) { 
+    if (hamburgerMenu && hamburgerMenu.classList.contains('active')) {
         hamburgerMenu.classList.remove('active');
         navLinks.classList.remove('active');
     }
@@ -94,10 +94,10 @@ window.showPage = function(id) {
     if (id === 'products') {
         loadVehicleForProducts();
     } else if (id === 'garage') {
-        renderSavedVehicles(); 
-    } else if (id === 'wishlist') { 
-        loadWishlist(); 
-    } else if (id === 'profile') { 
+        renderSavedVehicles();
+    } else if (id === 'wishlist') {
+        loadWishlist();
+    } else if (id === 'profile') {
         loadProfile();
     }
 }
@@ -113,7 +113,7 @@ function showNotification(message, type = 'info', duration = 3000) {
     notification.innerHTML = `
         <span class="notification-message">${message}</span>
         <button class="notification-close" aria-label="Close notification">&times;</button>
-    `; 
+    `;
     notificationContainer.appendChild(notification);
 
     const timeoutId = setTimeout(() => {
@@ -121,7 +121,7 @@ function showNotification(message, type = 'info', duration = 3000) {
     }, duration);
 
     notification.querySelector('.notification-close').addEventListener('click', () => {
-        clearTimeout(timeoutId); 
+        clearTimeout(timeoutId);
         notification.remove();
     });
     console.log(`Notification shown: ${message} (${type})`);
@@ -155,9 +155,9 @@ function clearAuthFields() {
     if (regEmailInput) regEmailInput.value = "";
     if (regPassInput) regPassInput.value = "";
 
-    if (passwordStrengthIndicator) { 
+    if (passwordStrengthIndicator) {
         passwordStrengthIndicator.textContent = '';
-        passwordStrengthIndicator.className = 'password-strength'; 
+        passwordStrengthIndicator.className = 'password-strength';
     }
     clearFormErrors('loginForm');
     clearFormErrors('registerForm');
@@ -165,12 +165,12 @@ function clearAuthFields() {
 }
 
 // --- Button Loading State Management ---
-const originalButtonTexts = new Map(); 
+const originalButtonTexts = new Map();
 
 function setButtonLoading(button, isLoading) {
     if (!button) {
         console.warn("setButtonLoading: Button element is null or undefined.");
-        return; 
+        return;
     }
 
     if (isLoading) {
@@ -183,7 +183,7 @@ function setButtonLoading(button, isLoading) {
     } else {
         if (originalButtonTexts.has(button)) {
             button.textContent = originalButtonTexts.get(button);
-            originalButtonTexts.delete(button); 
+            originalButtonTexts.delete(button);
         }
         button.classList.remove('is-loading');
         button.disabled = false;
@@ -193,7 +193,7 @@ function setButtonLoading(button, isLoading) {
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
     console.log("Auth state changed. User:", user ? user.email : "none");
-    if (!userEmailSpan) { 
+    if (!userEmailSpan) {
         document.addEventListener('DOMContentLoaded', () => {
             const emailSpan = document.getElementById("userEmail");
             if (emailSpan) updateAuthStateUI(user, emailSpan);
@@ -206,26 +206,26 @@ onAuthStateChanged(auth, user => {
 function updateAuthStateUI(user, emailSpanElement) {
     if (user) {
         emailSpanElement.textContent = `Logged in as: ${user.email}`;
-        
+
         if (document.querySelector('.page.active')?.id === 'auth') {
-            showPage('home'); 
+            showPage('home');
         }
-        clearAuthFields(); 
-        renderSavedVehicles(); 
-        loadWishlist(); 
-        loadProfile(); 
-        showNotification(`Welcome, ${user.displayName || user.email}!`, 'success', 2000); 
+        clearAuthFields();
+        renderSavedVehicles();
+        loadWishlist();
+        loadProfile();
+        showNotification(`Welcome, ${user.displayName || user.email}!`, 'success', 2000);
     } else {
         emailSpanElement.textContent = "";
-        if (document.querySelector(".page.active")?.id === "garage" || 
+        if (document.querySelector(".page.active")?.id === "garage" ||
             document.querySelector(".page.active")?.id === "wishlist" ||
-            document.querySelector(".page.active")?.id === "profile") { 
+            document.querySelector(".page.active")?.id === "profile") {
             showPage("auth");
         }
-        clearAuthFields(); 
-        renderSavedVehicles(); 
-        loadWishlist(); 
-        loadProfile(); 
+        clearAuthFields();
+        renderSavedVehicles();
+        loadWishlist();
+        loadProfile();
         showNotification("Logged out.", 'info', 2000);
     }
 }
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm = document.getElementById('loginForm');
     loginEmailInput = document.getElementById("loginEmail");
     loginPassInput = document.getElementById("loginPass");
-    regForm = document.getElementById('registerForm'); 
+    regForm = document.getElementById('registerForm');
     regEmailInput = document.getElementById("regEmail");
     regPassInput = document.getElementById("regPass");
     googleLoginBtn = document.getElementById('googleLoginBtn');
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleRegPassBtn = document.getElementById('toggleRegPass');
     forgotPasswordLink = document.querySelector('.forgot-password-link');
     // Create and insert password strength indicator here
-    passwordStrengthIndicator = document.createElement('div'); 
+    passwordStrengthIndicator = document.createElement('div');
     passwordStrengthIndicator.id = 'passwordStrength';
     passwordStrengthIndicator.className = 'password-strength';
     if (regPassInput) {
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Contact Form Elements
     contactForm = document.getElementById('contactForm');
-    
+
 
     // --- Attach Event Listeners (only if elements exist) ---
 
@@ -312,27 +312,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Login Form
-    if (loginForm && loginEmailInput && loginPassInput) { 
+    if (loginForm && loginEmailInput && loginPassInput) {
         loginForm.addEventListener("submit", async (e) => {
             console.log("Login form submitted.");
             e.preventDefault();
-            const submitBtn = e.submitter; 
+            const submitBtn = e.submitter;
 
             clearFormErrors('loginForm');
             let isValid = true;
             if (!loginEmailInput.value) { displayFormError('loginEmailError', 'Email is required.'); isValid = false; }
             if (!loginPassInput.value) { displayFormError('loginPassError', 'Password is required.'); isValid = false; }
-            if (!isValid) { 
-                showNotification('Please fill in all required fields.', 'error'); 
-                setButtonLoading(submitBtn, false); 
-                return; 
+            if (!isValid) {
+                showNotification('Please fill in all required fields.', 'error');
+                setButtonLoading(submitBtn, false);
+                return;
             }
 
-            setButtonLoading(submitBtn, true); 
+            setButtonLoading(submitBtn, true);
 
             try {
                 await signInWithEmailAndPassword(auth, loginEmailInput.value, loginPassInput.value);
-                showNotification("Login successful!", "success"); 
+                showNotification("Login successful!", "success");
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
                 if (err.code === 'auth/invalid-email') {
@@ -344,28 +344,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (err.code === 'auth/wrong-password') {
                     errorMessage = "Incorrect password.";
                     displayFormError('loginPassError', errorMessage);
-                } else if (err.code === 'auth/invalid-credential') { 
+                } else if (err.code === 'auth/invalid-credential') {
                     errorMessage = "Invalid email or password.";
                     displayFormError('loginEmailError', errorMessage);
-                    displayFormError('loginPassError', ' '); 
+                    displayFormError('loginPassError', ' ');
                 }
                 else {
-                    errorMessage = err.message; 
+                    errorMessage = err.message;
                 }
-                showNotification("Login failed: " + errorMessage, "error", 5000); 
+                showNotification("Login failed: " + errorMessage, "error", 5000);
             } finally {
-                setButtonLoading(submitBtn, false); 
+                setButtonLoading(submitBtn, false);
             }
         });
     } else { console.warn("Login form or its inputs not found."); }
 
 
     // Register Form
-    if (regForm && regEmailInput && regPassInput) { 
+    if (regForm && regEmailInput && regPassInput) {
         regForm.addEventListener("submit", async (e) => {
             console.log("Register form submitted.");
             e.preventDefault();
-            const submitBtn = e.submitter; 
+            const submitBtn = e.submitter;
 
             clearFormErrors('registerForm');
             let isValid = true;
@@ -374,17 +374,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (regPassInput.value.length < 6) { displayFormError('regPassError', 'Password must be at least 6 characters long.'); isValid = false; }
 
 
-            if (!isValid) { 
-                showNotification('Please fill in all required fields.', 'error'); 
-                setButtonLoading(submitBtn, false); 
-                return; 
+            if (!isValid) {
+                showNotification('Please fill in all required fields.', 'error');
+                setButtonLoading(submitBtn, false);
+                return;
             }
 
-            setButtonLoading(submitBtn, true); 
+            setButtonLoading(submitBtn, true);
 
             try {
                 await createUserWithEmailAndPassword(auth, regEmailInput.value, regPassInput.value);
-                showNotification("Registered successfully!", "success"); 
+                showNotification("Registered successfully!", "success");
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
                 if (err.code === 'auth/invalid-email') {
@@ -397,16 +397,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     errorMessage = "Password is too weak (min 6 characters).";
                     displayFormError('regPassError', errorMessage);
                 } else {
-                    errorMessage = err.message; 
+                    errorMessage = err.message;
                 }
-                showNotification("Registration error: " + errorMessage, "error", 5000); 
+                showNotification("Registration error: " + errorMessage, "error", 5000);
             } finally {
-                setButtonLoading(submitBtn, false); 
+                setButtonLoading(submitBtn, false);
             }
         });
 
         // Password Strength Indicator (for Registration Form)
-        if (regPassInput && passwordStrengthIndicator) { 
+        if (regPassInput && passwordStrengthIndicator) {
             regPassInput.addEventListener('input', () => {
                 const password = regPassInput.value;
                 const strength = checkPasswordStrength(password);
@@ -420,22 +420,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async function() {
             console.log("Google Login clicked.");
-            setButtonLoading(googleLoginBtn, true); 
+            setButtonLoading(googleLoginBtn, true);
 
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
-                showNotification("Google login successful!", "success"); 
+                showNotification("Google login successful!", "success");
             } catch (err) {
                 if (err.code === 'auth/popup-closed-by-user') {
                     showNotification("Google login cancelled.", "info");
                 } else if (err.code === 'auth/cancelled-popup-request') {
                     showNotification("Login attempt already in progress.", "info");
                 } else {
-                    showNotification("Google login error: " + err.message, "error", 5000); 
+                    showNotification("Google login error: " + err.message, "error", 5000);
                 }
             } finally {
-                setButtonLoading(googleLoginBtn, false); 
+                setButtonLoading(googleLoginBtn, false);
             }
         });
     } else { console.warn("Google Login button not found."); }
@@ -444,21 +444,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async function() {
             console.log("Logout clicked.");
-            setButtonLoading(logoutBtn, true); 
+            setButtonLoading(logoutBtn, true);
 
             try {
                 await signOut(auth);
-                showNotification("Logged out successfully!", "info"); 
+                showNotification("Logged out successfully!", "info");
             } catch (err) {
-                showNotification("Logout error: " + err.message, "error", 5000); 
+                showNotification("Logout error: " + err.message, "error", 5000);
             } finally {
-                setButtonLoading(logoutBtn, false); 
+                setButtonLoading(logoutBtn, false);
             }
         });
     } else { console.warn("Logout button not found."); }
 
     // Forgot Password
-    if (forgotPasswordLink && loginEmailInput) { 
+    if (forgotPasswordLink && loginEmailInput) {
         forgotPasswordLink.addEventListener('click', async (e) => {
             console.log("Forgot Password clicked.");
             e.preventDefault();
@@ -467,14 +467,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!email) {
                 displayFormError('loginEmailError', 'Please enter your email to reset password.');
                 showNotification('Please enter your email for password reset.', 'error');
-                setButtonLoading(forgotPasswordLink, false); 
+                setButtonLoading(forgotPasswordLink, false);
                 return;
             }
 
-            setButtonLoading(forgotPasswordLink, true); 
+            setButtonLoading(forgotPasswordLink, true);
 
             try {
-                await sendPasswordResetEmail(auth, email); 
+                await sendPasswordResetEmail(auth, email);
                 showNotification(`Password reset email sent to ${email}. Please check your inbox.`, 'success', 7000);
                 displayFormError('loginEmailError', '');
                 loginEmailInput.value = '';
@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleLoginPassBtn.textContent = type === 'password' ? '👁️' : '🙈';
         });
     } else { console.warn("Login password toggle not found."); }
-    
+
     if (toggleRegPassBtn && regPassInput) {
         toggleRegPassBtn.addEventListener('click', () => {
             const type = regPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -523,19 +523,19 @@ document.addEventListener('DOMContentLoaded', () => {
         garageForm.addEventListener('submit', async (e) => {
             console.log("Garage form submit handler triggered.");
             e.preventDefault();
-            const submitBtn = e.submitter; 
+            const submitBtn = e.submitter;
 
-            setButtonLoading(submitBtn, true); 
+            setButtonLoading(submitBtn, true);
             clearFormErrors('garageForm');
-            
+
             if (!auth.currentUser) {
                 console.log("Auth check: User not logged in.");
-                showNotification("Please log in to save your vehicle.", "error"); 
-                setButtonLoading(submitBtn, false); 
+                showNotification("Please log in to save your vehicle.", "error");
+                setButtonLoading(submitBtn, false);
                 return;
             }
 
-            const make = makeInput.value.trim(); 
+            const make = makeInput.value.trim();
             const model = modelInput.value.trim();
             const year = parseInt(yearInput.value);
 
@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isValid) {
                 console.log("Validation failed.");
                 showNotification('Please correct the errors in the form.', 'error');
-                setButtonLoading(submitBtn, false); 
+                setButtonLoading(submitBtn, false);
                 return;
             }
 
@@ -557,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userDocRef = getUserGarageDocRef();
                 console.log("Fetching user document snapshot for save...");
                 const userDocSnap = await getDoc(userDocRef);
-                
+
                 let vehicles = [];
 
                 if (userDocSnap.exists()) {
@@ -569,38 +569,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (vehicles.length >= MAX_VEHICLES) {
                     showNotification(`You can save a maximum of ${MAX_VEHICLES} vehicles. Please delete one to add a new one.`, 'error', 5000);
-                    setButtonLoading(submitBtn, false); 
+                    setButtonLoading(submitBtn, false);
                     console.log("Max vehicles limit reached.");
-                    return; 
+                    return;
                 }
 
-                const newVehicle = { make, model, year }; 
+                const newVehicle = { make, model, year };
                 console.log("Attempting to save new vehicle:", newVehicle);
 
                 if (!userDocSnap.exists() || !userDocSnap.data().hasOwnProperty(FIRESTORE_VEHICLES_FIELD)) {
                     console.log("Creating new document or initializing vehicles field with setDoc.");
                     await setDoc(userDocRef, {
-                        [FIRESTORE_VEHICLES_FIELD]: [newVehicle], 
-                        timestamp: serverTimestamp() 
+                        [FIRESTORE_VEHICLES_FIELD]: [newVehicle],
+                        timestamp: serverTimestamp()
                     });
                 } else {
                     console.log("Updating existing vehicles field with arrayUnion.");
                     await updateDoc(userDocRef, {
                         [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle),
-                        timestamp: serverTimestamp() 
+                        timestamp: serverTimestamp()
                     });
                 }
-                
-                showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, 'success'); 
+
+                showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, 'success');
                 garageForm.reset();
-                renderSavedVehicles(); 
-                loadVehicleForProducts(); 
+                renderSavedVehicles();
+                loadVehicleForProducts();
                 console.log("Vehicle save process completed successfully.");
-            } catch (err) { 
+            } catch (err) {
                 console.error("Unhandled error during garage form submission:", err);
-                showNotification("Error saving vehicle: " + err.message, "error", 5000); 
+                showNotification("Error saving vehicle: " + err.message, "error", 5000);
             } finally {
-                setButtonLoading(submitBtn, false); 
+                setButtonLoading(submitBtn, false);
                 console.log("Finally block executed, loading state removed.");
             }
         });
@@ -613,9 +613,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.target.classList.contains('add-to-wishlist-btn')) {
                 const productCard = event.target.closest('.card');
                 const product = {
-                    id: productCard.dataset.productId, 
+                    id: productCard.dataset.productId,
                     name: productCard.dataset.productName,
-                    price: parseFloat(productCard.dataset.productPrice), 
+                    price: parseFloat(productCard.dataset.productPrice),
                     amazonUrl: productCard.dataset.amazonUrl,
                     imageUrl: productCard.dataset.imageUrl,
                     brand: productCard.querySelector('p') ? productCard.querySelector('p').textContent.split(' – ')[0] : 'N/A'
@@ -629,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wishlistItemsContainer.addEventListener('click', async (event) => {
             if (event.target.classList.contains('remove-from-wishlist-btn')) {
                 const productIdToRemove = event.target.dataset.productId;
-                await removeFromWishlist(productIdToRemove, event.target); 
+                await removeFromWishlist(productIdToRemove, event.target);
             }
         });
     } else { console.warn("Wishlist Items Container not found."); }
@@ -637,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearWishlistButton) {
         clearWishlistButton.addEventListener('click', async () => {
             if (confirm("Are you sure you want to clear your entire wishlist?")) {
-                await clearWishlist(clearWishlistButton); 
+                await clearWishlist(clearWishlistButton);
             }
         });
     } else { console.warn("Clear Wishlist Button not found."); }
@@ -691,9 +691,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     await sendPasswordResetEmail(auth, user.email);
                     showNotification(`Password change email sent to ${user.email}. Please check your inbox.`, 'success', 7000);
-                } <<<<<<< HEAD
                 } catch (error) {
-                    console.error("Change password email error:", error); 
+                    console.error("Change password email error:", error);
                     showNotification(`Failed to send password change email: ${error.message}`, 'error', 7000);
                 }
             } else {
@@ -707,31 +706,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (contactForm) {
         contactForm.addEventListener('submit', async function(e) {
             console.log("Contact form submit handler triggered.");
-            e.preventDefault(); 
+            e.preventDefault();
             const submitBtn = e.submitter;
 
             clearFormErrors('contactForm');
 
             let isValid = true;
-            const contactName = contactForm.contactName.value.trim(); 
-            const contactEmail = contactForm.contactEmail.value.trim(); 
-            const contactMessage = contactForm.contactMessage.value.trim(); 
+            const contactName = contactForm.contactName.value.trim();
+            const contactEmail = contactForm.contactEmail.value.trim();
+            const contactMessage = contactForm.contactMessage.value.trim();
 
             if (!contactName) { displayFormError('contactNameError', 'Name is required.'); isValid = false; }
             if (!contactEmail || !contactEmail.includes('@')) { displayFormError('contactEmailError', 'A valid email is required.'); isValid = false; }
             if (!contactMessage) { displayFormError('contactMessageError', 'Message cannot be empty.'); isValid = false; }
-            
+
             if (!isValid) {
                 showNotification('Please fill in all required fields.', 'error');
                 return;
             }
 
-            setButtonLoading(submitBtn, true); 
+            setButtonLoading(submitBtn, true);
 
             try {
-                const response = await fetch(contactForm.action, { 
-                    method: contactForm.method, 
-                    body: new FormData(contactForm), 
+                const response = await fetch(contactForm.action, {
+                    method: contactForm.method,
+                    body: new FormData(contactForm),
                     headers: {
                         'Accept': 'application/json'
                     }
@@ -739,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     showNotification("Message sent successfully! We'll get back to you soon.", "success");
-                    contactForm.reset(); 
+                    contactForm.reset();
                 } else {
                     const data = await response.json();
                     if (data && data.errors) {
@@ -752,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNotification("Network error or failed to send message. Please check your connection.", "error", 5000);
                 console.error("Contact form submission error:", error);
             } finally {
-                setButtonLoading(submitBtn, false); 
+                setButtonLoading(submitBtn, false);
             }
         });
     } else { console.warn("Contact form not found."); }
@@ -765,12 +764,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial page load
-    showPage('home'); 
+    showPage('home');
 });
 
 // --- Helper Functions (defined outside DOMContentLoaded so they are globally accessible) ---
-const FIRESTORE_VEHICLES_FIELD = 'vehicles'; 
-const MAX_VEHICLES = 3; 
+const FIRESTORE_VEHICLES_FIELD = 'vehicles';
+const MAX_VEHICLES = 3;
 
 function getUserGarageDocRef() {
     if (!auth.currentUser) {
@@ -788,11 +787,11 @@ async function getSavedVehiclesFromFirestore() {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
             const data = userDoc.data();
-            return data[FIRESTORE_VEHICLES_FIELD] || []; 
+            return data[FIRESTORE_VEHICLES_FIELD] || [];
         }
         return [];
     } catch (error) {
-        console.error("Error getting vehicles from Firestore:", error); 
+        console.error("Error getting vehicles from Firestore:", error);
         showNotification("Error loading saved vehicles.", "error");
         return [];
     }
@@ -808,7 +807,7 @@ async function renderSavedVehicles() {
     }
 
     const vehicles = await getSavedVehiclesFromFirestore();
-    savedVehiclesContainer.innerHTML = ''; 
+    savedVehiclesContainer.innerHTML = '';
 
     if (vehicles.length === 0) {
         noVehiclesMessage.style.display = 'block';
@@ -832,7 +831,7 @@ async function renderSavedVehicles() {
         document.querySelectorAll('#savedVehicles .delete-vehicle-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
                 const indexToDelete = parseInt(e.target.dataset.vehicleIndex);
-                await deleteVehicle(indexToDelete, e.target); 
+                await deleteVehicle(indexToDelete, e.target);
             });
         });
     }
@@ -847,18 +846,18 @@ async function deleteVehicle(index, button) {
     try {
         const currentVehicles = await getSavedVehiclesFromFirestore();
         if (index > -1 && index < currentVehicles.length) {
-            const deletedVehicle = currentVehicles.splice(index, 1); 
-            
+            const deletedVehicle = currentVehicles.splice(index, 1);
+
             await updateDoc(userDocRef, {
-                [FIRESTORE_VEHICLES_FIELD]: currentVehicles 
+                [FIRESTORE_VEHICLES_FIELD]: currentVehicles
             });
             showNotification(`Vehicle "${deletedVehicle[0].year} ${deletedVehicle[0].make} ${deletedVehicle[0].model}" deleted.`, 'info');
-            renderSavedVehicles(); 
+            renderSavedVehicles();
         } else {
             console.warn("Attempted to delete vehicle with invalid index.");
         }
     } catch (error) {
-        console.error("Error deleting vehicle:", error); 
+        console.error("Error deleting vehicle:", error);
         showNotification("Error deleting vehicle: " + error.message, "error");
     } finally {
         setButtonLoading(button, false);
@@ -866,10 +865,10 @@ async function deleteVehicle(index, button) {
 }
 
 async function loadVehicleForProducts() {
-    const productContentDiv = document.getElementById('productContent'); 
+    const productContentDiv = document.getElementById('productContent');
     if (!productContentDiv) return;
-    
-    productContentDiv.innerHTML = '<p class="no-items-message">Loading your vehicle data...</p>'; 
+
+    productContentDiv.innerHTML = '<p class="no-items-message">Loading your vehicle data...</p>';
 
     if (!auth.currentUser) {
         productContentDiv.innerHTML = `
@@ -883,14 +882,14 @@ async function loadVehicleForProducts() {
     }
 
     try {
-        const vehicles = await getSavedVehiclesFromFirestore(); 
+        const vehicles = await getSavedVehiclesFromFirestore();
 
         if (vehicles.length > 0) {
             // Set the initially selected vehicle (either the first one, or the previously selected one)
             if (!selectedVehicleForSearch || !vehicles.some(v => v.make === selectedVehicleForSearch.make && v.model === selectedVehicleForSearch.model && v.year === selectedVehicleForSearch.year)) {
                 selectedVehicleForSearch = vehicles[0]; // Default to the first vehicle if none selected or old one removed
             }
-            
+
             let vehicleOptionsHtml = vehicles.map((v, i) => `
                 <option value="${i}" ${v === selectedVehicleForSearch ? 'selected' : ''}>
                     ${v.year} ${v.make} ${v.model}
@@ -906,7 +905,7 @@ async function loadVehicleForProducts() {
                 </div>
 
                 <h3 style="text-align: center; margin-top: 2rem;">Parts for Your <span id="currentSearchVehicle">${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}</span></h3>
-                
+
                 <div class="general-search-section">
                     <label for="generalProductSearch" class="sr-only">Search Parts by Keyword</label>
                     <input type="text" id="generalProductSearch" placeholder="Search for any part (e.g., 'alternator')" />
@@ -938,29 +937,29 @@ async function loadVehicleForProducts() {
                     selectedVehicleForSearch = vehicles[selectedIndex];
                     currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
                     // Re-render product content with updated selected vehicle
-                    loadVehicleForProducts(); 
+                    loadVehicleForProducts();
                 });
             }
 
             const generalSearchInput = document.getElementById('generalProductSearch');
-            const generalSearchButton = document.getElementById('generalSearchButton'); 
+            const generalSearchButton = document.getElementById('generalSearchButton');
 
-            if (generalSearchInput) { 
+            if (generalSearchInput) {
                 generalSearchInput.addEventListener('keypress', (event) => {
                     if (event.key === 'Enter') {
-                        event.preventDefault(); 
-                        setButtonLoading(generalSearchButton, true); 
-                        searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model); 
-                        setButtonLoading(generalSearchButton, false); 
+                        event.preventDefault();
+                        setButtonLoading(generalSearchButton, true);
+                        searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
+                        setButtonLoading(generalSearchButton, false);
                     }
                 });
             }
 
-            if (generalSearchButton) { 
+            if (generalSearchButton) {
                 generalSearchButton.addEventListener('click', () => {
-                    setButtonLoading(generalSearchButton, true); 
-                    searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model); 
-                    setButtonLoading(generalSearchButton, false); 
+                    setButtonLoading(generalSearchButton, true);
+                    searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
+                    setButtonLoading(generalSearchButton, false);
                 });
             }
 
@@ -971,7 +970,7 @@ async function loadVehicleForProducts() {
                     <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
                 </div>
             `;
-             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000); 
+             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
         }
     } catch (err) {
         console.error("Error loading vehicle for products page:", err);
@@ -981,7 +980,7 @@ async function loadVehicleForProducts() {
                 <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
             </div>
         `;
-        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000); 
+        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
     }
 }
 
@@ -991,23 +990,23 @@ window.searchAmazonSpecific = function(year, make, model, partType) {
     window.open(url, "_blank");
 }
 
-window.searchAmazonGeneral = function(year, make, model) { 
+window.searchAmazonGeneral = function(year, make, model) {
     const searchInput = document.getElementById('generalProductSearch');
-    let query = searchInput.value.trim(); 
+    let query = searchInput.value.trim();
 
     if (query) {
-        query = `${query} ${year} ${make} ${model}`; 
+        query = `${query} ${year} ${make} ${model}`;
         const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
         window.open(url, "_blank");
-        searchInput.value = ''; 
+        searchInput.value = '';
     } else {
-        showNotification("Please enter a search term.", "info"); 
+        showNotification("Please enter a search term.", "info");
     }
 }
 
 async function addToWishlist(product) {
     const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) return; 
+    if (!userDocRef) return;
 
     try {
         const currentWishlist = await getWishlistFromFirestore();
@@ -1045,7 +1044,7 @@ async function removeFromWishlist(productId, button) {
                 wishlist: arrayRemove(itemToRemove)
             });
             showNotification("Product removed from wishlist.", "info");
-            loadWishlist(); 
+            loadWishlist();
         } else {
             showNotification("Product not found in wishlist (already removed?).", "info");
         }
@@ -1065,10 +1064,10 @@ async function clearWishlist(button) {
 
     try {
         await updateDoc(userDocRef, {
-            wishlist: [] 
+            wishlist: []
         });
         showNotification("Wishlist cleared!", "info");
-        loadWishlist(); 
+        loadWishlist();
     } catch (error) {
         console.error("Error clearing wishlist:", error);
         showNotification("Failed to clear wishlist: " + error.message, "error");
@@ -1085,11 +1084,11 @@ async function getWishlistFromFirestore() {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
             const data = userDoc.data();
-            return data.wishlist || []; 
+            return data.wishlist || [];
         }
         return [];
     } catch (error) {
-        console.error("Error getting wishlist from Firestore:", error); 
+        console.error("Error getting wishlist from Firestore:", error);
         showNotification("Error loading wishlist.", "error");
         return [];
     }
@@ -1114,61 +1113,4 @@ async function loadWishlist() {
         if (wishlist.length === 0) {
             wishlistItemsContainer.innerHTML = '<p class="no-items-message">Your wishlist is empty. Add some products from the Products page!</p>';
         } else {
-            wishlistItemsContainer.innerHTML = ''; // Clear loading message
-            wishlist.forEach(product => {
-                const productCard = document.createElement('div');
-                productCard.className = 'card';
-                productCard.innerHTML = `
-                    <img src="${product.imageUrl}" alt="${product.name}">
-                    <h4>${product.name}</h4>
-                    <p>${product.brand} – $${product.price.toFixed(2)}</p>
-                    <a href="${product.amazonUrl}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${product.name} on Amazon">Buy on Amazon</a>
-                    <button class="remove-from-wishlist-btn" data-product-id="${product.id}">Remove from Wishlist</button>
-                `;
-                wishlistItemsContainer.appendChild(productCard);
-            });
-        }
-    } catch (error) {
-        console.error("Error rendering wishlist:", error);
-        wishlistItemsContainer.innerHTML = '<p class="no-items-message">Error loading wishlist items.</p>';
-        showNotification("Error loading wishlist items: " + error.message, "error");
-    }
-}
-
-
-function checkPasswordStrength(password) {
-    let score = 0;
-    if (password.length > 5) score++;
-    if (password.length > 7) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-
-    if (score < 3) return 'weak';
-    if (score < 5) return 'medium';
-    return 'strong';
-}
-
-function updatePasswordStrengthIndicator(strength) {
-    if (passwordStrengthIndicator) { // Use the global variable directly
-        passwordStrengthIndicator.textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
-        passwordStrengthIndicator.className = `password-strength ${strength}`;
-    }
-}
-
-async function loadProfile() {
-    const user = auth.currentUser;
-    if (!profileEmailSpan || !displayNameInput) {
-        console.warn("Profile elements not found for loading.");
-        return;
-    }
-
-    if (user) {
-        profileEmailSpan.textContent = user.email;
-        displayNameInput.value = user.displayName || ''; // Populate display name if available
-    } else {
-        profileEmailSpan.textContent = "Not logged in";
-        displayNameInput.value = '';
-    }
-}
+            wish
