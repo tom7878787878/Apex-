@@ -26,62 +26,76 @@ const db = getFirestore(app);
 // Amazon Affiliate Tag
 const amazonTag = "everythi09e02-20"; 
 
-// --- DOM Elements ---
-const navLinks = document.getElementById('navLinks');
-const hamburgerMenu = document.getElementById('hamburgerMenu');
-const userEmailSpan = document.getElementById('userEmail');
-const notificationContainer = document.getElementById('notificationContainer');
+// --- Global DOM Elements (initially null, assigned in DOMContentLoaded) ---
+let navLinks;
+let hamburgerMenu;
+let userEmailSpan;
+let notificationContainer;
+
+// --- Auth Form Elements (assigned in DOMContentLoaded) ---
+let loginForm;
+let loginEmailInput;
+let loginPassInput;
+let regForm; // Renamed for clarity: registerForm to regForm
+let regEmailInput;
+let regPassInput;
+let googleLoginBtn;
+let logoutBtn;
+let toggleLoginPassBtn;
+let toggleRegPassBtn;
+let forgotPasswordLink;
+let passwordStrengthIndicator; // Declared globally for strength meter
+
+// --- Garage Form Elements (assigned in DOMContentLoaded) ---
+let garageForm;
+let makeInput;
+let modelInput;
+let yearInput;
+let savedVehiclesContainer;
+let noVehiclesMessage;
+
+// --- Wishlist Elements (assigned in DOMContentLoaded) ---
+let featuredProductsGrid;
+let wishlistItemsContainer;
+let clearWishlistButton;
+let wishlistEmptyMessage;
+
+// --- Profile Elements (assigned in DOMContentLoaded) ---
+let profileEmailSpan;
+let updateProfileBtn;
+let changePasswordBtn;
+
+// --- Contact Form Elements (assigned in DOMContentLoaded) ---
+let contactForm;
+
 
 // --- Page Navigation ---
 window.showPage = function(id) {
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     document.getElementById(id).classList.add("active");
 
-    // Close hamburger menu if open on page switch
-    if (hamburgerMenu.classList.contains('active')) { // Check for 'active' class
-        hamburgerMenu.classList.remove('active'); // Remove 'active' from hamburger if you have toggle for bars
+    if (hamburgerMenu && hamburgerMenu.classList.contains('active')) { 
+        hamburgerMenu.classList.remove('active');
         navLinks.classList.remove('active');
     }
 
-    // Special handling for pages that need data loaded on view
     if (id === 'products') {
         loadVehicleForProducts();
     } else if (id === 'garage') {
-        renderSavedVehicles(); // Use new render function for garage
+        renderSavedVehicles(); 
     } else if (id === 'wishlist') { 
-        loadWishlist(); // Call loadWishlist when navigating to the wishlist page
+        loadWishlist(); 
     } else if (id === 'profile') { 
         loadProfile();
     }
 }
 
-// --- Hamburger Menu Toggle ---
-hamburgerMenu.addEventListener('click', (event) => {
-    event.stopPropagation();
-    navLinks.classList.toggle('active');
-    hamburgerMenu.classList.toggle('open'); // Toggle 'open' class for hamburger icon animation
-});
-
-// Close nav when a link is clicked
-navLinks.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-        if (navLinks.classList.contains('active')) {
-            navLinks.classList.remove('active');
-            hamburgerMenu.classList.remove('open'); // Also close hamburger icon
-        }
-    });
-});
-
-// Close nav when clicking outside
-document.addEventListener('click', (event) => {
-    if (!navLinks.contains(event.target) && !hamburgerMenu.contains(event.target) && navLinks.classList.contains('active')) {
-        navLinks.classList.remove('active');
-        hamburgerMenu.classList.remove('open'); // Also close hamburger icon
-    }
-});
-
 // --- Notification System ---
 function showNotification(message, type = 'info', duration = 3000) {
+    if (!notificationContainer) {
+        console.warn("Notification container not found! Cannot display notification.");
+        return;
+    }
     const notification = document.createElement('div');
     notification.className = `notification-item notification-${type}`;
     notification.innerHTML = `
@@ -90,25 +104,15 @@ function showNotification(message, type = 'info', duration = 3000) {
     `;
     notificationContainer.appendChild(notification);
 
-    // Auto-remove after duration
     const timeoutId = setTimeout(() => {
         notification.remove();
     }, duration);
 
-    // Manual close button
     notification.querySelector('.notification-close').addEventListener('click', () => {
-        clearTimeout(timeoutId); // Prevent auto-removal
+        clearTimeout(timeoutId);
         notification.remove();
     });
 }
-
-// --- Footer Current Year ---
-document.addEventListener('DOMContentLoaded', () => {
-    const currentYearSpan = document.getElementById('currentYear');
-    if (currentYearSpan) {
-        currentYearSpan.textContent = new Date().getFullYear();
-    }
-});
 
 
 // --- Form Error Display Helper ---
@@ -116,6 +120,8 @@ function displayFormError(elementId, message) {
     const errorSpan = document.getElementById(elementId);
     if (errorSpan) {
         errorSpan.textContent = message;
+    } else {
+        console.warn(`Error span with ID ${elementId} not found.`);
     }
 }
 
@@ -130,25 +136,29 @@ function clearFormErrors(formId) {
 
 // Function to clear auth form fields
 function clearAuthFields() {
-    document.getElementById("loginEmail").value = "";
-    document.getElementById("loginPass").value = "";
-    document.getElementById("regEmail").value = "";
-    document.getElementById("regPass").value = "";
-    // Clear password strength indicator
-    const passwordStrengthIndicator = document.getElementById('passwordStrength');
+    console.log("Attempting to clear auth fields.");
+    if (loginEmailInput) loginEmailInput.value = "";
+    if (loginPassInput) loginPassInput.value = "";
+    if (regEmailInput) regEmailInput.value = "";
+    if (regPassInput) regPassInput.value = "";
+
     if (passwordStrengthIndicator) {
         passwordStrengthIndicator.textContent = '';
-        passwordStrengthIndicator.className = 'password-strength'; // Reset class
+        passwordStrengthIndicator.className = 'password-strength';
     }
     clearFormErrors('loginForm');
     clearFormErrors('registerForm');
+    console.log("Auth fields clear attempt complete.");
 }
 
 // --- Button Loading State Management ---
 const originalButtonTexts = new Map(); 
 
 function setButtonLoading(button, isLoading) {
-    if (!button) return; // Guard against null button
+    if (!button) {
+        console.warn("setButtonLoading: Button element is null or undefined.");
+        return; 
+    }
 
     if (isLoading) {
         if (!originalButtonTexts.has(button)) {
@@ -160,145 +170,542 @@ function setButtonLoading(button, isLoading) {
     } else {
         if (originalButtonTexts.has(button)) {
             button.textContent = originalButtonTexts.get(button);
-            originalButtonTexts.delete(button); // Clean up
+            originalButtonTexts.delete(button);
         }
         button.classList.remove('is-loading');
         button.disabled = false;
     }
 }
 
-
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
-    const emailSpan = document.getElementById("userEmail");
+    if (!userEmailSpan) { // Ensure userEmailSpan exists before trying to use it
+        console.warn("userEmailSpan not found, delaying auth state update.");
+        document.addEventListener('DOMContentLoaded', () => { // Retry after DOM is ready
+            const emailSpan = document.getElementById("userEmail");
+            if (emailSpan) updateAuthStateUI(user, emailSpan);
+        });
+    } else {
+        updateAuthStateUI(user, userEmailSpan);
+    }
+});
+
+function updateAuthStateUI(user, emailSpanElement) {
+    console.log("Auth state changed. User:", user ? user.email : "none");
     if (user) {
-        emailSpan.textContent = `Logged in as: ${user.email}`;
+        emailSpanElement.textContent = `Logged in as: ${user.email}`;
         
-        // If coming from auth page, automatically switch to home (or garage/products)
         if (document.querySelector('.page.active')?.id === 'auth') {
             showPage('home'); 
         }
         clearAuthFields(); 
-        // Always load vehicles/wishlist after auth state change, especially on page load
-        renderSavedVehicles(); // Reload garage
-        loadWishlist(); // Reload wishlist
-        loadProfile(); // Load profile data on auth change
+        renderSavedVehicles(); 
+        loadWishlist(); 
+        loadProfile(); 
     } else {
-        emailSpan.textContent = "";
-        // If the user logs out or is not logged in and on garage/wishlist/profile page, redirect to auth
+        emailSpanElement.textContent = "";
         if (document.querySelector(".page.active")?.id === "garage" || 
             document.querySelector(".page.active")?.id === "wishlist" ||
             document.querySelector(".page.active")?.id === "profile") { 
             showPage("auth");
         }
-        // Clear local displays if user logs out (Firestore will be empty if not public)
         clearAuthFields(); 
-        renderSavedVehicles(); // Clear garage display
-        loadWishlist(); // Clear wishlist display
-        loadProfile(); // Clear profile display
+        renderSavedVehicles(); 
+        loadWishlist(); 
+        loadProfile(); 
     }
-});
-
-// --- Login ---
-document.getElementById("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const loginEmailInput = document.getElementById("loginEmail");
-    const loginPassInput = document.getElementById("loginPass");
-    const submitBtn = e.submitter; 
-
-    clearFormErrors('loginForm');
-    let isValid = true;
-    if (!loginEmailInput.value) { displayFormError('loginEmailError', 'Email is required.'); isValid = false; }
-    if (!loginPassInput.value) { displayFormError('loginPassError', 'Password is required.'); isValid = false; }
-    if (!isValid) { showNotification('Please fill in all required fields.', 'error'); return; }
-
-
-    setButtonLoading(submitBtn, true); 
-
-    try {
-        await signInWithEmailAndPassword(auth, loginEmailInput.value, loginPassInput.value);
-        showNotification("Login successful!", "success"); 
-        // onAuthStateChanged will handle page redirect and clearing
-    } catch (err) {
-        let errorMessage = "An unknown error occurred.";
-        if (err.code === 'auth/invalid-email') {
-            errorMessage = "Invalid email format.";
-            displayFormError('loginEmailError', errorMessage);
-        } else if (err.code === 'auth/user-not-found') {
-            errorMessage = "No user found with that email.";
-            displayFormError('loginEmailError', errorMessage);
-        } else if (err.code === 'auth/wrong-password') {
-            errorMessage = "Incorrect password.";
-            displayFormError('loginPassError', errorMessage);
-        } else if (err.code === 'auth/invalid-credential') { 
-            errorMessage = "Invalid email or password.";
-            displayFormError('loginEmailError', errorMessage);
-            displayFormError('loginPassError', ' '); 
-        }
-        else {
-            errorMessage = err.message; 
-        }
-        showNotification("Login failed: " + errorMessage, "error", 5000); 
-    } finally {
-        setButtonLoading(submitBtn, false); 
-    }
-});
-
-// --- Register ---
-document.getElementById("registerForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const regEmailInput = document.getElementById("regEmail");
-    const regPassInput = document.getElementById("regPass");
-    const submitBtn = e.submitter; 
-
-    clearFormErrors('registerForm');
-    let isValid = true;
-    if (!regEmailInput.value) { displayFormError('regEmailError', 'Email is required.'); isValid = false; }
-    if (!regPassInput.value) { displayFormError('regPassError', 'Password is required.'); isValid = false; }
-    if (regPassInput.value.length < 6) { displayFormError('regPassError', 'Password must be at least 6 characters long.'); isValid = false; } // Basic length check
-
-
-    if (!isValid) { showNotification('Please fill in all required fields.', 'error'); return; }
-
-    setButtonLoading(submitBtn, true); 
-
-    try {
-        await createUserWithEmailAndPassword(auth, regEmailInput.value, regPassInput.value);
-        showNotification("Registered successfully!", "success"); 
-        // onAuthStateChanged will handle page redirect and clearing
-    } catch (err) {
-        let errorMessage = "An unknown error occurred.";
-        if (err.code === 'auth/invalid-email') {
-            errorMessage = "Invalid email format.";
-            displayFormError('regEmailError', errorMessage);
-        } else if (err.code === 'auth/email-already-in-use') {
-            errorMessage = "Email is already in use.";
-            displayFormError('regEmailError', errorMessage);
-        } else if (err.code === 'auth/weak-password') {
-            errorMessage = "Password is too weak (min 6 characters).";
-            displayFormError('regPassError', errorMessage);
-        } else {
-            errorMessage = err.message; 
-        }
-        showNotification("Registration error: " + errorMessage, "error", 5000); 
-    } finally {
-        setButtonLoading(submitBtn, false); 
-    }
-});
-
-// Password Strength Indicator (for Registration Form)
-const passwordStrengthIndicator = document.createElement('div');
-passwordStrengthIndicator.id = 'passwordStrength';
-passwordStrengthIndicator.className = 'password-strength';
-if (regPassInput) { 
-    regPassInput.parentNode.insertBefore(passwordStrengthIndicator, regPassInput.nextSibling);
-    // Add event listener for real-time feedback
-    regPassInput.addEventListener('input', () => {
-        const password = regPassInput.value;
-        const strength = checkPasswordStrength(password);
-        updatePasswordStrengthIndicator(strength);
-    });
 }
+
+// --- DOMContentLoaded for Element Retrieval and Event Listeners ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Assign Global DOM Elements
+    navLinks = document.getElementById('navLinks');
+    hamburgerMenu = document.getElementById('hamburgerMenu');
+    userEmailSpan = document.getElementById('userEmail');
+    notificationContainer = document.getElementById('notificationContainer');
+
+    // Assign Auth Form Elements
+    loginForm = document.getElementById('loginForm');
+    loginEmailInput = document.getElementById("loginEmail");
+    loginPassInput = document.getElementById("loginPass");
+    regForm = document.getElementById('registerForm'); // Corrected name
+    regEmailInput = document.getElementById("regEmail");
+    regPassInput = document.getElementById("regPass");
+    googleLoginBtn = document.getElementById('googleLoginBtn');
+    logoutBtn = document.getElementById('logoutBtn');
+    toggleLoginPassBtn = document.getElementById('toggleLoginPass');
+    toggleRegPassBtn = document.getElementById('toggleRegPass');
+    forgotPasswordLink = document.querySelector('.forgot-password-link');
+    passwordStrengthIndicator = document.getElementById('passwordStrength'); // Already defined globally, but ensure it's in DOM
+
+    // Assign Garage Form Elements
+    garageForm = document.getElementById('garageForm');
+    makeInput = document.getElementById("make");
+    modelInput = document.getElementById("model");
+    yearInput = document.getElementById("year");
+    savedVehiclesContainer = document.getElementById('savedVehicles');
+    noVehiclesMessage = document.getElementById('noVehiclesMessage');
+
+    // Assign Wishlist Elements
+    featuredProductsGrid = document.getElementById('featuredProductsGrid');
+    wishlistItemsContainer = document.getElementById('wishlistItems');
+    clearWishlistButton = document.getElementById('clearWishlistBtn');
+    wishlistEmptyMessage = document.querySelector('#wishlist .no-items-message');
+
+    // Assign Profile Elements
+    profileEmailSpan = document.getElementById('profileEmail');
+    updateProfileBtn = document.getElementById('updateProfileBtn');
+    changePasswordBtn = document.getElementById('changePasswordBtn');
+
+    // Assign Contact Form Elements
+    contactForm = document.getElementById('contactForm');
+    
+
+    // --- Attach Event Listeners (only if elements exist) ---
+
+    // Hamburger Menu Logic
+    if (hamburgerMenu && navLinks) {
+        hamburgerMenu.addEventListener('click', (event) => {
+            event.stopPropagation();
+            navLinks.classList.toggle('active');
+            hamburgerMenu.classList.toggle('open');
+        });
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (navLinks.classList.contains('active')) {
+                    navLinks.classList.remove('active');
+                    hamburgerMenu.classList.remove('open');
+                }
+            });
+        });
+        document.addEventListener('click', (event) => {
+            if (!navLinks.contains(event.target) && !hamburgerMenu.contains(event.target) && navLinks.classList.contains('active')) {
+                navLinks.classList.remove('active');
+                hamburgerMenu.classList.remove('open');
+            }
+        });
+    }
+
+    // Login Form
+    if (loginForm) {
+        loginForm.addEventListener("submit", async (e) => {
+            console.log("Login form submitted.");
+            e.preventDefault();
+            const submitBtn = e.submitter; 
+
+            clearFormErrors('loginForm');
+            let isValid = true;
+            if (!loginEmailInput.value) { displayFormError('loginEmailError', 'Email is required.'); isValid = false; }
+            if (!loginPassInput.value) { displayFormError('loginPassError', 'Password is required.'); isValid = false; }
+            if (!isValid) { 
+                showNotification('Please fill in all required fields.', 'error'); 
+                setButtonLoading(submitBtn, false);
+                return; 
+            }
+
+            setButtonLoading(submitBtn, true); 
+
+            try {
+                await signInWithEmailAndPassword(auth, loginEmailInput.value, loginPassInput.value);
+                showNotification("Login successful!", "success"); 
+            } catch (err) {
+                let errorMessage = "An unknown error occurred.";
+                if (err.code === 'auth/invalid-email') {
+                    errorMessage = "Invalid email format.";
+                    displayFormError('loginEmailError', errorMessage);
+                } else if (err.code === 'auth/user-not-found') {
+                    errorMessage = "No user found with that email.";
+                    displayFormError('loginEmailError', errorMessage);
+                } else if (err.code === 'auth/wrong-password') {
+                    errorMessage = "Incorrect password.";
+                    displayFormError('loginPassError', errorMessage);
+                } else if (err.code === 'auth/invalid-credential') { 
+                    errorMessage = "Invalid email or password.";
+                    displayFormError('loginEmailError', errorMessage);
+                    displayFormError('loginPassError', ' '); 
+                }
+                else {
+                    errorMessage = err.message; 
+                }
+                showNotification("Login failed: " + errorMessage, "error", 5000); 
+            } finally {
+                setButtonLoading(submitBtn, false); 
+            }
+        });
+    }
+
+    // Register Form
+    if (regForm) {
+        regForm.addEventListener("submit", async (e) => {
+            console.log("Register form submitted.");
+            e.preventDefault();
+            const submitBtn = e.submitter; 
+
+            clearFormErrors('registerForm');
+            let isValid = true;
+            if (!regEmailInput.value) { displayFormError('regEmailError', 'Email is required.'); isValid = false; }
+            if (!regPassInput.value) { displayFormError('regPassError', 'Password is required.'); isValid = false; }
+            if (regPassInput.value.length < 6) { displayFormError('regPassError', 'Password must be at least 6 characters long.'); isValid = false; }
+
+
+            if (!isValid) { 
+                showNotification('Please fill in all required fields.', 'error'); 
+                setButtonLoading(submitBtn, false); 
+                return; 
+            }
+
+            setButtonLoading(submitBtn, true); 
+
+            try {
+                await createUserWithEmailAndPassword(auth, regEmailInput.value, regPassInput.value);
+                showNotification("Registered successfully!", "success"); 
+            } catch (err) {
+                let errorMessage = "An unknown error occurred.";
+                if (err.code === 'auth/invalid-email') {
+                    errorMessage = "Invalid email format.";
+                    displayFormError('regEmailError', errorMessage);
+                } else if (err.code === 'auth/email-already-in-use') {
+                    errorMessage = "Email is already in use.";
+                    displayFormError('regEmailError', errorMessage);
+                } else if (err.code === 'auth/weak-password') {
+                    errorMessage = "Password is too weak (min 6 characters).";
+                    displayFormError('regPassError', errorMessage);
+                } else {
+                    errorMessage = err.message; 
+                }
+                showNotification("Registration error: " + errorMessage, "error", 5000); 
+            } finally {
+                setButtonLoading(submitBtn, false); 
+            }
+        });
+
+        // Password Strength Indicator (for Registration Form)
+        if (regPassInput && !passwordStrengthIndicator.parentNode) { // Ensure element is not already appended
+            passwordStrengthIndicator.id = 'passwordStrength'; // Re-assign ID if needed
+            passwordStrengthIndicator.className = 'password-strength';
+            regPassInput.parentNode.insertBefore(passwordStrengthIndicator, regPassInput.nextSibling);
+            regPassInput.addEventListener('input', () => {
+                const password = regPassInput.value;
+                const strength = checkPasswordStrength(password);
+                updatePasswordStrengthIndicator(strength);
+            });
+        }
+    }
+
+    // Google Login
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', async function() {
+            console.log("Google Login clicked.");
+            setButtonLoading(googleLoginBtn, true); 
+
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+                showNotification("Google login successful!", "success"); 
+            } catch (err) {
+                if (err.code === 'auth/popup-closed-by-user') {
+                    showNotification("Google login cancelled.", "info");
+                } else if (err.code === 'auth/cancelled-popup-request') {
+                    showNotification("Login attempt already in progress.", "info");
+                } else {
+                    showNotification("Google login error: " + err.message, "error", 5000); 
+                }
+            } finally {
+                setButtonLoading(googleLoginBtn, false); 
+            }
+        });
+    }
+
+    // Logout
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async function() {
+            console.log("Logout clicked.");
+            setButtonLoading(logoutBtn, true); 
+
+            try {
+                await signOut(auth);
+                showNotification("Logged out successfully!", "info"); 
+            } catch (err) {
+                showNotification("Logout error: " + err.message, "error", 5000); 
+            } finally {
+                setButtonLoading(logoutBtn, false); 
+            }
+        });
+    }
+
+    // Forgot Password
+    if (forgotPasswordLink && loginEmailInput) { // Ensure both elements exist
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            console.log("Forgot Password clicked.");
+            e.preventDefault();
+            const email = loginEmailInput.value.trim();
+
+            if (!email) {
+                displayFormError('loginEmailError', 'Please enter your email to reset password.');
+                showNotification('Please enter your email for password reset.', 'error');
+                setButtonLoading(forgotPasswordLink, false); 
+                return;
+            }
+
+            setButtonLoading(forgotPasswordLink, true); 
+
+            try {
+                await sendPasswordResetResetEmail(auth, email); // Corrected function name
+                showNotification(`Password reset email sent to ${email}. Please check your inbox.`, 'success', 7000);
+                displayFormError('loginEmailError', '');
+                loginEmailInput.value = '';
+            } catch (error) {
+                let errorMessage = "Failed to send reset email.";
+                if (error.code === 'auth/invalid-email') {
+                    errorMessage = "Invalid email address.";
+                    displayFormError('loginEmailError', errorMessage);
+                } else if (error.code === 'auth/user-not-found') {
+                    errorMessage = "No user found with that email.";
+                    displayFormError('loginEmailError', errorMessage);
+                } else {
+                    errorMessage = error.message;
+                }
+                showNotification(`Password reset error: ${errorMessage}`, 'error', 7000);
+                console.error("Password reset error:", error);
+            } finally {
+                setButtonLoading(forgotPasswordLink, false);
+            }
+        });
+    }
+
+    // Password Visibility Toggles
+    if (toggleLoginPassBtn && loginPassInput) {
+        toggleLoginPassBtn.addEventListener('click', () => {
+            const type = loginPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            loginPassInput.setAttribute('type', type);
+            toggleLoginPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+            toggleLoginPassBtn.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+    if (toggleRegPassBtn && regPassInput) {
+        toggleRegPassBtn.addEventListener('click', () => {
+            const type = regPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            regPassInput.setAttribute('type', type);
+            toggleRegPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+            toggleRegPassBtn.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+
+    // My Garage Form
+    if (garageForm) {
+        garageForm.addEventListener('submit', async (e) => {
+            console.log("Garage form submit handler triggered.");
+            e.preventDefault();
+            const submitBtn = e.submitter; 
+
+            setButtonLoading(submitBtn, true); 
+            clearFormErrors('garageForm');
+            
+            if (!auth.currentUser) {
+                console.log("Auth check: User not logged in.");
+                showNotification("Please log in to save your vehicle.", "error"); 
+                setButtonLoading(submitBtn, false); 
+                return;
+            }
+
+            const make = makeInput.value.trim(); 
+            const model = modelInput.value.trim();
+            const year = parseInt(yearInput.value);
+
+            let isValid = true;
+            if (!make) { displayFormError('makeError', 'Make is required.'); isValid = false; }
+            if (!model) { displayFormError('modelError', 'Model is required.'); isValid = false; }
+            if (isNaN(year) || year < 1900 || year > 2100) { displayFormError('yearError', 'Please enter a valid year (e.g., 2023).'); isValid = false; }
+
+            if (!isValid) {
+                console.log("Validation failed.");
+                showNotification('Please correct the errors in the form.', 'error');
+                setButtonLoading(submitBtn, false); 
+                return;
+            }
+
+            console.log("Validation passed, proceeding with save logic.");
+
+            try {
+                const userDocRef = getUserGarageDocRef();
+                console.log("Fetching user document snapshot for save...");
+                const userDocSnap = await getDoc(userDocRef);
+                
+                let vehicles = [];
+
+                if (userDocSnap.exists()) {
+                    vehicles = userDocSnap.data()[FIRESTORE_VEHICLES_FIELD] || [];
+                    console.log("Existing vehicles data found:", vehicles);
+                } else {
+                    console.log("User document does not exist, will create.");
+                }
+
+                if (vehicles.length >= MAX_VEHICLES) {
+                    showNotification(`You can save a maximum of ${MAX_VEHICLES} vehicles. Please delete one to add a new one.`, 'error', 5000);
+                    setButtonLoading(submitBtn, false); 
+                    console.log("Max vehicles limit reached.");
+                    return; 
+                }
+
+                const newVehicle = { make, model, year }; 
+                console.log("Attempting to save new vehicle:", newVehicle);
+
+                if (!userDocSnap.exists() || !userDocSnap.data().hasOwnProperty(FIRESTORE_VEHICLES_FIELD)) {
+                    console.log("Creating new document or initializing vehicles field with setDoc.");
+                    await setDoc(userDocRef, {
+                        [FIRESTORE_VEHICLES_FIELD]: [newVehicle], 
+                        timestamp: serverTimestamp() 
+                    });
+                } else {
+                    console.log("Updating existing vehicles field with arrayUnion.");
+                    await updateDoc(userDocRef, {
+                        [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle),
+                        timestamp: serverTimestamp() 
+                    });
+                }
+                
+                showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, 'success'); 
+                garageForm.reset();
+                renderSavedVehicles(); 
+                loadVehicleForProducts(); 
+                console.log("Vehicle save process completed successfully.");
+            } catch (err) { 
+                console.error("Unhandled error during garage form submission:", err);
+                showNotification("Error saving vehicle: " + err.message, "error", 5000); 
+            } finally {
+                setButtonLoading(submitBtn, false); 
+                console.log("Finally block executed, loading state removed.");
+            }
+        });
+    }
+
+    // Featured Products Grid (for Add to Wishlist buttons)
+    if (featuredProductsGrid) {
+        featuredProductsGrid.addEventListener('click', (event) => {
+            if (event.target.classList.contains('add-to-wishlist-btn')) {
+                const productCard = event.target.closest('.card');
+                const product = {
+                    id: productCard.dataset.productId, 
+                    name: productCard.dataset.productName,
+                    price: parseFloat(productCard.dataset.productPrice), 
+                    amazonUrl: productCard.dataset.amazonUrl,
+                    imageUrl: productCard.dataset.imageUrl,
+                    brand: productCard.querySelector('p') ? productCard.querySelector('p').textContent.split(' – ')[0] : 'N/A'
+                };
+                addToWishlist(product);
+            }
+        });
+    }
+
+    // Wishlist Items Container (for Remove from Wishlist buttons)
+    if (wishlistItemsContainer) {
+        wishlistItemsContainer.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('remove-from-wishlist-btn')) {
+                const productIdToRemove = event.target.dataset.productId;
+                await removeFromWishlist(productIdToRemove, event.target); 
+            }
+        });
+    }
+
+    // Clear Wishlist Button
+    if (clearWishlistButton) {
+        clearWishlistButton.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to clear your entire wishlist?")) {
+                await clearWishlist(clearWishlistButton); 
+            }
+        });
+    }
+
+    // Profile Page Buttons
+    if (updateProfileBtn) {
+        updateProfileBtn.addEventListener('click', () => {
+            showNotification("Update Profile functionality is coming soon!", "info");
+        });
+    }
+
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            if (user) {
+                showNotification("Change Password functionality: A password reset email will be sent.", "info");
+                try {
+                    await sendPasswordResetEmail(auth, user.email);
+                    showNotification(`Password change email sent to ${user.email}. Please check your inbox.`, 'success', 7000);
+                } catch (error) {
+                    console.error("Change password email error:", error); 
+                    showNotification(`Failed to send password change email: ${error.message}`, 'error', 7000);
+                }
+            } else {
+                showNotification("Please log in to change your password.", "error");
+            }
+        });
+    }
+
+    // Contact Form
+    if (contactForm) {
+        contactForm.addEventListener('submit', async function(e) {
+            console.log("Contact form submitted!");
+            e.preventDefault(); 
+            const submitBtn = e.submitter;
+
+            clearFormErrors('contactForm');
+
+            let isValid = true;
+            const contactName = contactForm.contactName.value.trim(); // Use contactForm ref
+            const contactEmail = contactForm.contactEmail.value.trim(); // Use contactForm ref
+            const contactMessage = contactForm.contactMessage.value.trim(); // Use contactForm ref
+
+            if (!contactName) { displayFormError('contactNameError', 'Name is required.'); isValid = false; }
+            if (!contactEmail || !contactEmail.includes('@')) { displayFormError('contactEmailError', 'A valid email is required.'); isValid = false; }
+            if (!contactMessage) { displayFormError('contactMessageError', 'Message cannot be empty.'); isValid = false; }
+            
+            if (!isValid) {
+                showNotification('Please fill in all required fields.', 'error');
+                return;
+            }
+
+            setButtonLoading(submitBtn, true); 
+
+            try {
+                const response = await fetch(contactForm.action, { // Use contactForm ref
+                    method: contactForm.method, // Use contactForm ref
+                    body: new FormData(contactForm), // Use contactForm ref
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    showNotification("Message sent successfully! We'll get back to you soon.", "success");
+                    contactForm.reset(); 
+                } else {
+                    const data = await response.json();
+                    if (data && data.errors) {
+                        showNotification(`Error sending message: ${data.errors.map(err => err.message).join(', ')}`, "error", 5000);
+                    } else {
+                        showNotification("Failed to send message. Please try again later.", "error", 5000);
+                    }
+                }
+            } catch (error) {
+                showNotification("Network error or failed to send message. Please check your connection.", "error", 5000);
+                console.error("Contact form submission error:", error);
+            } finally {
+                setButtonLoading(submitBtn, false); 
+            }
+        });
+    }
+
+    // Footer Current Year
+    const currentYearSpan = document.getElementById('currentYear');
+    if (currentYearSpan) {
+        currentYearSpan.textContent = new Date().getFullYear();
+    }
+
+    // Initial page load
+    showPage('home'); 
+});
+
+// --- Helper Functions (defined outside DOMContentLoaded so they are globally accessible) ---
 
 function checkPasswordStrength(password) {
     let score = 0;
@@ -315,119 +722,11 @@ function checkPasswordStrength(password) {
 }
 
 function updatePasswordStrengthIndicator(strength) {
-    passwordStrengthIndicator.textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
-    passwordStrengthIndicator.className = `password-strength ${strength}`;
-}
-
-
-// --- Google Login ---
-window.googleLogin = async function() {
-    const googleBtn = document.getElementById('googleLoginBtn'); 
-    setButtonLoading(googleBtn, true); 
-
-    const provider = new GoogleAuthProvider();
-    try {
-        await signInWithPopup(auth, provider);
-        showNotification("Google login successful!", "success"); 
-        // onAuthStateChanged will handle page redirect and clearing
-    } catch (err) {
-        if (err.code === 'auth/popup-closed-by-user') {
-            showNotification("Google login cancelled.", "info");
-        } else if (err.code === 'auth/cancelled-popup-request') {
-            showNotification("Login attempt already in progress.", "info");
-        } else {
-            showNotification("Google login error: " + err.message, "error", 5000); 
-        }
-    } finally {
-        setButtonLoading(googleBtn, false); 
+    if (passwordStrengthIndicator) { // Ensure element exists
+        passwordStrengthIndicator.textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        passwordStrengthIndicator.className = `password-strength ${strength}`;
     }
 }
-
-// --- Logout ---
-window.logout = async function() {
-    const logoutBtn = document.getElementById('logoutBtn'); 
-    setButtonLoading(logoutBtn, true); 
-
-    try {
-        await signOut(auth);
-        showNotification("Logged out successfully!", "info"); 
-        // onAuthStateChanged will handle clearing and redirect
-    } catch (err) {
-        showNotification("Logout error: " + err.message, "error", 5000); 
-    } finally {
-        setButtonLoading(logoutBtn, false); 
-    }
-}
-
-// --- Forgot Password ---
-const forgotPasswordLink = document.querySelector('.forgot-password-link');
-if (forgotPasswordLink) {
-    forgotPasswordLink.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const loginEmailInput = document.getElementById('loginEmail');
-        const email = loginEmailInput.value.trim();
-
-        if (!email) {
-            displayFormError('loginEmailError', 'Please enter your email to reset password.');
-            showNotification('Please enter your email for password reset.', 'error');
-            return;
-        }
-
-        setButtonLoading(forgotPasswordLink, true); // Apply loading to the link/button
-
-        try {
-            await sendPasswordResetEmail(auth, email);
-            showNotification(`Password reset email sent to ${email}. Please check your inbox.`, 'success', 7000);
-            displayFormError('loginEmailError', ''); // Clear email error if successful
-            loginEmailInput.value = ''; // Clear email field
-        } catch (error) {
-            let errorMessage = "Failed to send reset email.";
-            if (error.code === 'auth/invalid-email') {
-                errorMessage = "Invalid email address.";
-                displayFormError('loginEmailError', errorMessage);
-            } else if (error.code === 'auth/user-not-found') {
-                errorMessage = "No user found with that email.";
-                displayFormError('loginEmailError', errorMessage);
-            } else {
-                errorMessage = error.message;
-            }
-            showNotification(`Password reset error: ${errorMessage}`, 'error', 7000);
-            console.error("Password reset error:", error);
-        } finally {
-            setButtonLoading(forgotPasswordLink, false);
-        }
-    });
-}
-
-
-// --- Password Visibility Toggles ---
-const toggleLoginPassBtn = document.getElementById('toggleLoginPass');
-const loginPassInput = document.getElementById('loginPass');
-const toggleRegPassBtn = document.getElementById('toggleRegPass');
-
-if (toggleLoginPassBtn) {
-    toggleLoginPassBtn.addEventListener('click', () => {
-        const type = loginPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        loginPassInput.setAttribute('type', type);
-        toggleLoginPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
-        toggleLoginPassBtn.textContent = type === 'password' ? '👁️' : '🙈'; // Change icon
-    });
-}
-if (toggleRegPassBtn) {
-    toggleRegPassBtn.addEventListener('click', () => {
-        const type = regPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        regPassInput.setAttribute('type', type);
-        toggleRegPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
-        toggleRegPassBtn.textContent = type === 'password' ? '👁️' : '🙈'; // Change icon
-    });
-}
-
-
-// --- My Garage Section (Firebase) ---
-const garageForm = document.getElementById('garageForm');
-const savedVehiclesContainer = document.getElementById('savedVehicles');
-const noVehiclesMessage = document.getElementById('noVehiclesMessage');
-const MAX_VEHICLES = 3; // Maximum number of vehicles a user can save
 
 const FIRESTORE_VEHICLES_FIELD = 'vehicles'; 
 
@@ -451,159 +750,16 @@ async function getSavedVehiclesFromFirestore() {
         }
         return [];
     } catch (error) {
-        console.error("Error getting vehicles from Firestore:", error); // Console log for debugging
+        console.error("Error getting vehicles from Firestore:", error); 
         showNotification("Error loading saved vehicles.", "error");
         return [];
     }
 }
 
-async function renderSavedVehicles() {
-    const vehicles = await getSavedVehiclesFromFirestore();
-    savedVehiclesContainer.innerHTML = ''; 
-
-    if (vehicles.length === 0) {
-        noVehiclesMessage.style.display = 'block';
-    } else {
-        noVehiclesMessage.style.display = 'none';
-        vehicles.forEach((vehicle, index) => {
-            const vehicleCard = document.createElement('div');
-            vehicleCard.className = 'vehicle-card';
-            vehicleCard.innerHTML = `
-                <div class="vehicle-info">
-                    <h4>${vehicle.year} ${vehicle.make} ${vehicle.model}</h4>
-                    <p>Make: ${vehicle.make}</p>
-                    <p>Model: ${vehicle.model}</p>
-                    <p>Year: ${vehicle.year}</p>
-                </div>
-                <button class="delete-vehicle-btn" data-vehicle-index="${index}" aria-label="Delete ${vehicle.year} ${vehicle.make} ${vehicle.model}">Delete</button>
-            `;
-            savedVehiclesContainer.appendChild(vehicleCard);
-        });
-
-        document.querySelectorAll('.delete-vehicle-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const indexToDelete = parseInt(e.target.dataset.vehicleIndex);
-                await deleteVehicle(indexToDelete, e.target); 
-            });
-        });
-    }
-}
-
-async function deleteVehicle(index, button) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) return;
-
-    setButtonLoading(button, true);
-
-    try {
-        const currentVehicles = await getSavedVehiclesFromFirestore();
-        if (index > -1 && index < currentVehicles.length) {
-            const deletedVehicle = currentVehicles.splice(index, 1); 
-            
-            await updateDoc(userDocRef, {
-                [FIRESTORE_VEHICLES_FIELD]: currentVehicles 
-            });
-            showNotification(`Vehicle "${deletedVehicle[0].year} ${deletedVehicle[0].make} ${deletedVehicle[0].model}" deleted.`, 'info');
-            renderSavedVehicles(); 
-        }
-    } catch (error) {
-        console.error("Error deleting vehicle:", error); // Console log for debugging
-        showNotification("Error deleting vehicle: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-garageForm.addEventListener('submit', async (e) => {
-    console.log("Garage form submitted!"); // NEW: Log at start of submit handler
-    e.preventDefault();
-    const makeInput = document.getElementById("make"); 
-    const modelInput = document.getElementById("model");
-    const yearInput = document.getElementById("year");
-    const submitBtn = e.submitter; 
-
-    clearFormErrors('garageForm');
-    
-    if (!auth.currentUser) {
-        showNotification("Please log in to save your vehicle.", "error"); 
-        console.warn("Attempted to save vehicle without being logged in."); // Console log for debugging
-        setButtonLoading(submitBtn, false); // NEW: Ensure button resets
-        return;
-    }
-
-    const make = makeInput.value.trim(); 
-    const model = modelInput.value.trim();
-    const year = parseInt(yearInput.value);
-
-    let isValid = true;
-    if (!make) { displayFormError('makeError', 'Make is required.'); isValid = false; }
-    if (!model) { displayFormError('modelError', 'Model is required.'); isValid = false; }
-    if (isNaN(year) || year < 1900 || year > 2100) { displayFormError('yearError', 'Please enter a valid year (e.g., 2023).'); isValid = false; }
-
-    if (!isValid) {
-        showNotification('Please correct the errors in the form.', 'error');
-        console.warn("Form validation failed."); // Console log for debugging
-        setButtonLoading(submitBtn, false); // NEW: Ensure button resets
-        return;
-    }
-
-    console.log("Validation passed, setting button loading."); // NEW: Log after validation
-    setButtonLoading(submitBtn, true); 
-
-    try {
-        const userDocRef = getUserGarageDocRef();
-        console.log("Getting user document snapshot..."); // NEW: Log before getDoc
-        const userDocSnap = await getDoc(userDocRef);
-        console.log("User document snapshot received:", userDocSnap.exists() ? userDocSnap.data() : "Does not exist"); // NEW: Log snapshot data
-        
-        let vehicles = [];
-
-        if (userDocSnap.exists()) {
-            vehicles = userDocSnap.data()[FIRESTORE_VEHICLES_FIELD] || [];
-        }
-
-        if (vehicles.length >= MAX_VEHICLES) {
-            showNotification(`You can save a maximum of ${MAX_VEHICLES} vehicles. Please delete one to add a new one.`, 'error', 5000);
-            console.warn("Max vehicles reached."); // Console log for debugging
-            setButtonLoading(submitBtn, false); // NEW: Ensure button resets
-            return; 
-        }
-
-        const newVehicle = { make, model, year }; 
-        console.log("New vehicle data:", newVehicle); // NEW: Log new vehicle
-
-        if (!userDocSnap.exists() || !userDocSnap.data().hasOwnProperty(FIRESTORE_VEHICLES_FIELD)) {
-            console.log("Document or vehicles field missing, using setDoc."); // NEW: Log path
-            await setDoc(userDocRef, {
-                [FIRESTORE_VEHICLES_FIELD]: [newVehicle], 
-                timestamp: serverTimestamp() 
-            });
-        } else {
-            console.log("Vehicles field exists, using updateDoc with arrayUnion."); // NEW: Log path
-            await updateDoc(userDocRef, {
-                [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle),
-                timestamp: serverTimestamp() 
-            });
-        }
-        
-        showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, 'success'); 
-        console.log("Vehicle saved successfully to Firestore!"); // Console log for debugging
-        garageForm.reset();
-        renderSavedVehicles(); 
-        loadVehicleForProducts(); 
-    } catch (err) { 
-        console.error("Error in garageForm submit handler:", err); // VERY IMPORTANT: Catches errors
-        showNotification("Error saving vehicle: " + err.message, "error", 5000); 
-    } finally {
-        setButtonLoading(submitBtn, false); 
-        console.log("Finished garage form submission process."); // NEW: Log end
-    }
-});
-
-
-// Load Vehicle and generate product links for the Products page
 async function loadVehicleForProducts() {
-    const productContentDiv = document.getElementById('productContent');
+    const productContentDiv = document.getElementById('productContent'); // Re-get if dynamic
+    if (!productContentDiv) return; // Guard
+    
     productContentDiv.innerHTML = '<p class="no-items-message">Loading your vehicle data...</p>'; 
 
     if (!auth.currentUser) {
@@ -648,24 +804,28 @@ async function loadVehicleForProducts() {
             `;
             productContentDiv.innerHTML = htmlContent;
 
+            // Re-attach listeners for dynamically created elements
             const generalSearchInput = document.getElementById('generalProductSearch');
             const generalSearchButton = document.getElementById('generalSearchButton'); 
 
-            generalSearchInput.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    event.preventDefault(); 
+            if (generalSearchInput) { 
+                generalSearchInput.addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault(); 
+                        setButtonLoading(generalSearchButton, true); 
+                        searchAmazonGeneral(year, make, model);
+                        setButtonLoading(generalSearchButton, false); 
+                    }
+                });
+            }
+
+            if (generalSearchButton) { 
+                generalSearchButton.addEventListener('click', () => {
                     setButtonLoading(generalSearchButton, true); 
                     searchAmazonGeneral(year, make, model);
                     setButtonLoading(generalSearchButton, false); 
-                }
-            });
-
-            generalSearchButton.addEventListener('click', () => {
-                setButtonLoading(generalSearchButton, true); 
-                searchAmazonGeneral(year, make, model);
-                setButtonLoading(generalSearchButton, false); 
-            });
-
+                });
+            }
 
         } else {
             productContentDiv.innerHTML = `
@@ -677,7 +837,7 @@ async function loadVehicleForProducts() {
              showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000); 
         }
     } catch (err) {
-        console.error("Error loading vehicle for products page:", err); // Console log for debugging
+        console.error("Error loading vehicle for products page:", err);
         productContentDiv.innerHTML = `
             <div class="no-vehicle-message">
                 <h3>Error Loading Vehicle</h3>
@@ -688,14 +848,12 @@ async function loadVehicleForProducts() {
     }
 }
 
-// Specific Amazon Search Function (remains unchanged and correctly uses affiliate tag)
 window.searchAmazonSpecific = function(year, make, model, partType) {
     const query = `${partType} ${year} ${make} ${model}`;
     const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
     window.open(url, "_blank");
 }
 
-// General Amazon Search Function (Now filters by vehicle and uses affiliate tag)
 window.searchAmazonGeneral = function(year, make, model) { 
     const searchInput = document.getElementById('generalProductSearch');
     let query = searchInput.value.trim(); 
@@ -707,63 +865,6 @@ window.searchAmazonGeneral = function(year, make, model) {
         searchInput.value = ''; 
     } else {
         showNotification("Please enter a search term.", "info"); 
-    }
-}
-
-// --- Wishlist Logic (Firestore Integration) ---
-// Get references
-const featuredProductsGrid = document.getElementById('featuredProductsGrid');
-const wishlistItemsContainer = document.getElementById('wishlistItems');
-const clearWishlistButton = document.getElementById('clearWishlistBtn');
-const wishlistEmptyMessage = document.querySelector('#wishlist .no-items-message'); 
-
-// Event listener for "Add to Wishlist" buttons (delegated)
-featuredProductsGrid.addEventListener('click', (event) => {
-    if (event.target.classList.contains('add-to-wishlist-btn')) {
-        const productCard = event.target.closest('.card');
-        const product = {
-            id: productCard.dataset.productId, 
-            name: productCard.dataset.productName,
-            price: parseFloat(productCard.dataset.productPrice), 
-            amazonUrl: productCard.dataset.amazonUrl,
-            imageUrl: productCard.dataset.imageUrl,
-            brand: productCard.querySelector('p') ? productCard.querySelector('p').textContent.split(' – ')[0] : 'N/A'
-        };
-        
-        addToWishlist(product);
-    }
-});
-
-// Event listener for "Remove from Wishlist" buttons (delegated) - **Crucial for dynamic content**
-wishlistItemsContainer.addEventListener('click', async (event) => {
-    if (event.target.classList.contains('remove-from-wishlist-btn')) {
-        const productIdToRemove = event.target.dataset.productId;
-        await removeFromWishlist(productIdToRemove, event.target); 
-    }
-});
-
-// Event listener for "Clear Wishlist" button
-clearWishlistButton.addEventListener('click', async () => {
-    if (confirm("Are you sure you want to clear your entire wishlist?")) {
-        await clearWishlist(clearWishlistButton); 
-    }
-});
-
-async function getWishlistFromFirestore() {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) return []; 
-
-    try {
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            return data.wishlist || []; 
-        }
-        return [];
-    } catch (error) {
-        console.error("Error getting wishlist from Firestore:", error); // Console log for debugging
-        showNotification("Error loading wishlist from server.", "error");
-        return [];
     }
 }
 
@@ -787,7 +888,7 @@ async function addToWishlist(product) {
             showNotification(`${product.name} is already in your wishlist.`, "info");
         }
     } catch (error) {
-        console.error("Error adding to wishlist:", error); // Console log for debugging
+        console.error("Error adding to wishlist:", error);
         showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
     }
 }
@@ -812,7 +913,7 @@ async function removeFromWishlist(productId, button) {
             showNotification("Product not found in wishlist (already removed?).", "info");
         }
     } catch (error) {
-        console.error("Error removing from wishlist:", error); // Console log for debugging
+        console.error("Error removing from wishlist:", error);
         showNotification("Failed to remove product from wishlist: " + error.message, "error");
     } finally {
         setButtonLoading(button, false);
@@ -832,7 +933,7 @@ async function clearWishlist(button) {
         showNotification("Wishlist cleared!", "info");
         loadWishlist(); 
     } catch (error) {
-        console.error("Error clearing wishlist:", error); // Console log for debugging
+        console.error("Error clearing wishlist:", error);
         showNotification("Failed to clear wishlist: " + error.message, "error");
     } finally {
         setButtonLoading(button, false);
@@ -840,6 +941,16 @@ async function clearWishlist(button) {
 }
 
 async function loadWishlist() {
+    // Re-get elements in case of dynamic page changes or initial load order issues
+    const wishlistItemsContainer = document.getElementById('wishlistItems');
+    const wishlistEmptyMessage = document.querySelector('#wishlist .no-items-message'); 
+    const clearWishlistButton = document.getElementById('clearWishlistBtn');
+
+    if (!wishlistItemsContainer || !wishlistEmptyMessage || !clearWishlistButton) {
+        console.warn("Wishlist DOM elements not found.");
+        return;
+    }
+
     wishlistItemsContainer.innerHTML = '<p class="no-items-message">Loading wishlist...</p>';
     wishlistEmptyMessage.style.display = 'block'; 
 
@@ -875,12 +986,44 @@ async function loadWishlist() {
     }
 }
 
-// --- User Profile Page Logic ---
-const profileEmailSpan = document.getElementById('profileEmail');
-const updateProfileBtn = document.getElementById('updateProfileBtn');
-const changePasswordBtn = document.getElementById('changePasswordBtn');
+function checkPasswordStrength(password) {
+    let score = 0;
+    if (password.length > 5) score++;
+    if (password.length > 7) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score < 3) return 'weak';
+    if (score < 5) return 'medium';
+    return 'strong';
+}
+
+function updatePasswordStrengthIndicator(strength) {
+    // Ensure passwordStrengthIndicator is globally defined and attached
+    if (document.getElementById('passwordStrength')) {
+        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
+    }
+}
+
+// Global scope for some elements used in multiple functions before DOMContentLoaded
+const FIRESTORE_VEHICLES_FIELD = 'vehicles'; 
+
+function getUserGarageDocRef() {
+    if (!auth.currentUser) {
+        showNotification("Please log in to manage your garage.", "error");
+        return null;
+    }
+    return doc(db, "garages", auth.currentUser.uid);
+}
 
 function loadProfile() {
+    // Re-get element in case of dynamic page changes or initial load order issues
+    const profileEmailSpan = document.getElementById('profileEmail'); 
+    if (!profileEmailSpan) return; // Guard
+
     const user = auth.currentUser;
     if (user) {
         profileEmailSpan.textContent = user.email;
@@ -892,95 +1035,3 @@ function loadProfile() {
         }
     }
 }
-
-// Placeholder for update profile functionality (future)
-if (updateProfileBtn) {
-    updateProfileBtn.addEventListener('click', () => {
-        showNotification("Update Profile functionality is coming soon!", "info");
-        console.log("Update Profile button clicked."); // Console log for debugging
-    });
-}
-
-// Placeholder for change password functionality (future)
-if (changePasswordBtn) {
-    changePasswordBtn.addEventListener('click', async () => {
-        const user = auth.currentUser;
-        if (user) {
-            showNotification("Change Password functionality: A password reset email will be sent.", "info");
-            console.log("Change Password button clicked."); // Console log for debugging
-            try {
-                await sendPasswordResetEmail(auth, user.email);
-                showNotification(`Password change email sent to ${user.email}. Please check your inbox.`, 'success', 7000);
-            } catch (error) {
-                console.error("Change password email error:", error); // Console log for debugging
-                showNotification(`Failed to send password change email: ${error.message}`, 'error', 7000);
-            }
-        } else {
-            showNotification("Please log in to change your password.", "error");
-        }
-    });
-}
-
-
-// --- Contact Form Submission Handling (Formspree Integration) ---
-document.getElementById('contactForm').addEventListener('submit', async function(e) {
-    console.log("Contact form submitted!"); // NEW: Log at start of submit handler
-    e.preventDefault(); 
-    const form = e.target;
-    const submitBtn = e.submitter;
-
-    clearFormErrors('contactForm');
-
-    let isValid = true;
-    const contactName = form.contactName.value.trim();
-    const contactEmail = form.contactEmail.value.trim();
-    const contactMessage = form.contactMessage.value.trim();
-
-    if (!contactName) { displayFormError('contactNameError', 'Name is required.'); isValid = false; }
-    if (!contactEmail || !contactEmail.includes('@')) { displayFormError('contactEmailError', 'A valid email is required.'); isValid = false; }
-    if (!contactMessage) { displayFormError('contactMessageError', 'Message cannot be empty.'); isValid = false; }
-    
-    if (!isValid) {
-        showNotification('Please fill in all required fields.', 'error');
-        console.warn("Contact form validation failed."); // Console log for debugging
-        return;
-    }
-
-    setButtonLoading(submitBtn, true); 
-
-    try {
-        const response = await fetch(form.action, {
-            method: form.method,
-            body: new FormData(form), 
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-
-        if (response.ok) {
-            showNotification("Message sent successfully! We'll get back to you soon.", "success");
-            form.reset(); 
-            console.log("Contact form submission successful!"); // Console log for debugging
-        } else {
-            const data = await response.json();
-            if (data && data.errors) {
-                showNotification(`Error sending message: ${data.errors.map(err => err.message).join(', ')}`, "error", 5000);
-            } else {
-                showNotification("Failed to send message. Please try again later.", "error", 5000);
-            }
-            console.error("Contact form submission failed:", data); // Console log for debugging
-        }
-    } catch (error) {
-        showNotification("Network error or failed to send message. Please check your connection.", "error", 5000);
-        console.error("Contact form submission error:", error); // Console log for debugging
-    } finally {
-        setButtonLoading(submitBtn, false); 
-        console.log("Finished contact form submission process."); // Console log for debugging
-    }
-});
-
-
-// Initial page load calls
-document.addEventListener('DOMContentLoaded', () => {
-    showPage('home'); 
-});
