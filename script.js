@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; 
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; 
 import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -64,9 +64,16 @@ let wishlistEmptyMessage;
 let profileEmailSpan;
 let updateProfileBtn;
 let changePasswordBtn;
+// NEW PROFILE FORM ELEMENTS
+let updateProfileForm;
+let displayNameInput;
+let saveProfileBtn;
 
 // --- Contact Form Elements (assigned in DOMContentLoaded) ---
 let contactForm;
+
+// NEW Global variable for selected vehicle
+let selectedVehicleForSearch = null;
 
 
 // --- Page Navigation ---
@@ -104,7 +111,6 @@ function showNotification(message, type = 'info', duration = 3000) {
     }
     const notification = document.createElement('div');
     notification.className = `notification-item notification-${type}`;
-    // Added a close button for consistency, even if not explicitly styled in minimal CSS
     notification.innerHTML = `
         <span class="notification-message">${message}</span>
         <button class="notification-close" aria-label="Close notification">&times;</button>
@@ -115,9 +121,8 @@ function showNotification(message, type = 'info', duration = 3000) {
         notification.remove();
     }, duration);
 
-    // Add event listener to the close button
     notification.querySelector('.notification-close').addEventListener('click', () => {
-        clearTimeout(timeoutId); // Prevent auto-removal if manually closed
+        clearTimeout(timeoutId); 
         notification.remove();
     });
     console.log(`Notification shown: ${message} (${type})`);
@@ -151,7 +156,7 @@ function clearAuthFields() {
     if (regEmailInput) regEmailInput.value = "";
     if (regPassInput) regPassInput.value = "";
 
-    if (passwordStrengthIndicator) { // Ensure element exists before accessing
+    if (passwordStrengthIndicator) { 
         passwordStrengthIndicator.textContent = '';
         passwordStrengthIndicator.className = 'password-strength'; 
     }
@@ -189,7 +194,7 @@ function setButtonLoading(button, isLoading) {
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
     console.log("Auth state changed. User:", user ? user.email : "none");
-    if (!userEmailSpan) { // Safety check: If DOM not fully ready, defer
+    if (!userEmailSpan) { 
         document.addEventListener('DOMContentLoaded', () => {
             const emailSpan = document.getElementById("userEmail");
             if (emailSpan) updateAuthStateUI(user, emailSpan);
@@ -210,8 +215,6 @@ function updateAuthStateUI(user, emailSpanElement) {
         renderSavedVehicles(); 
         loadWishlist(); 
         loadProfile(); 
-        // Show welcome notification only if it's a fresh login, not just page refresh
-        // This is tricky without a state variable, but generally Auth state change means re-render
         showNotification(`Welcome, ${user.email}!`, 'success', 2000); 
     } else {
         emailSpanElement.textContent = "";
@@ -250,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleLoginPassBtn = document.getElementById('toggleLoginPass');
     toggleRegPassBtn = document.getElementById('toggleRegPass');
     forgotPasswordLink = document.querySelector('.forgot-password-link');
-    passwordStrengthIndicator = document.createElement('div'); // Create element here
+    passwordStrengthIndicator = document.createElement('div'); 
     passwordStrengthIndicator.id = 'passwordStrength';
     passwordStrengthIndicator.className = 'password-strength';
 
@@ -272,6 +275,9 @@ document.addEventListener('DOMContentLoaded', () => {
     profileEmailSpan = document.getElementById('profileEmail');
     updateProfileBtn = document.getElementById('updateProfileBtn');
     changePasswordBtn = document.getElementById('changePasswordBtn');
+    updateProfileForm = document.getElementById('updateProfileForm');
+    displayNameInput = document.getElementById('displayNameInput');
+    saveProfileBtn = document.getElementById('saveProfileBtn');
 
     // Assign Contact Form Elements
     contactForm = document.getElementById('contactForm');
@@ -303,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Login Form
-    if (loginForm && loginEmailInput && loginPassInput) { // Ensure all inputs are present
+    if (loginForm && loginEmailInput && loginPassInput) { 
         loginForm.addEventListener("submit", async (e) => {
             console.log("Login form submitted.");
             e.preventDefault();
@@ -397,7 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Password Strength Indicator (for Registration Form)
-        // Check if indicator already exists to prevent duplication on multiple DOMContentLoaded calls
         if (regPassInput && !document.getElementById('passwordStrength')) { 
             regPassInput.parentNode.insertBefore(passwordStrengthIndicator, regPassInput.nextSibling);
             regPassInput.addEventListener('input', () => {
@@ -728,12 +733,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- Helper Functions (defined outside DOMContentLoaded so they are globally accessible) ---
-// Note: These functions assume their required DOM elements (like specific inputs,
-// error spans, or notificationContainer) are either globally available after
-// DOMContentLoaded or re-queried within the function if they are dynamic.
-
 const FIRESTORE_VEHICLES_FIELD = 'vehicles'; 
-const MAX_VEHICLES = 3; // Define MAX_VEHICLES here
+const MAX_VEHICLES = 3; 
 
 function getUserGarageDocRef() {
     if (!auth.currentUser) {
@@ -761,8 +762,14 @@ async function getSavedVehiclesFromFirestore() {
     }
 }
 
+// renderSavedVehicles and deleteVehicle are now within DOMContentLoaded scope via their calls
+// but the functions themselves need to be defined once globally or in a scope accessible by their calls
+// I've moved them out, assuming they are indeed globally accessible or called from global context.
+
+// These are still good to be defined globally as they are called from multiple places
+// and rely on DOM elements that might not be available at the very start of the script.
+
 async function renderSavedVehicles() {
-    // Re-get elements to ensure they are current/exist
     const savedVehiclesContainer = document.getElementById('savedVehicles');
     const noVehiclesMessage = document.getElementById('noVehiclesMessage');
 
@@ -793,7 +800,6 @@ async function renderSavedVehicles() {
             savedVehiclesContainer.appendChild(vehicleCard);
         });
 
-        // Attach listeners dynamically to the newly created buttons
         document.querySelectorAll('#savedVehicles .delete-vehicle-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
                 const indexToDelete = parseInt(e.target.dataset.vehicleIndex);
@@ -843,6 +849,7 @@ async function loadVehicleForProducts() {
                 <p>To get personalized part searches, please <a href="#" onclick="showPage('auth')">log in</a> or go to <a href="#" onclick="showPage('garage')">My Garage</a> to save your vehicle details.</p>
             </div>
         `;
+        selectedVehicleForSearch = null; // Reset selected vehicle if user logs out or is not logged in
         return;
     }
 
@@ -850,11 +857,26 @@ async function loadVehicleForProducts() {
         const vehicles = await getSavedVehiclesFromFirestore(); 
 
         if (vehicles.length > 0) {
-            const { year, make, model } = vehicles[0]; 
+            // Set the initially selected vehicle (either the first one, or the previously selected one)
+            if (!selectedVehicleForSearch || !vehicles.some(v => v.make === selectedVehicleForSearch.make && v.model === selectedVehicleForSearch.model && v.year === selectedVehicleForSearch.year)) {
+                selectedVehicleForSearch = vehicles[0]; // Default to the first vehicle if none selected or old one removed
+            }
             
+            let vehicleOptionsHtml = vehicles.map((v, i) => `
+                <option value="${i}" ${v === selectedVehicleForSearch ? 'selected' : ''}>
+                    ${v.year} ${v.make} ${v.model}
+                </option>
+            `).join('');
+
             let htmlContent = `
-                <h3 style="text-align: center;">Parts for Your ${year} ${make} ${model}</h3>
-                <div class="vehicle-info">Using Saved Vehicle: ${year} ${make} ${model}</div>
+                <div class="select-vehicle-container">
+                    <label for="vehicleSelect">Select Your Vehicle:</label>
+                    <select id="vehicleSelect">
+                        ${vehicleOptionsHtml}
+                    </select>
+                </div>
+
+                <h3 style="text-align: center; margin-top: 2rem;">Parts for Your <span id="currentSearchVehicle">${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}</span></h3>
                 
                 <div class="general-search-section">
                     <label for="generalProductSearch" class="sr-only">Search Parts by Keyword</label>
@@ -864,19 +886,31 @@ async function loadVehicleForProducts() {
 
                 <p style="text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;">Or click a category below to search Amazon directly for your vehicle:</p>
                 <div class="category-buttons">
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Brake Pads')">Brake Pads</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Oil Filter')">Oil Filter</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Air Filter')">Air Filter</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Spark Plugs')">Spark Plugs</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Suspension Kit')">Suspension Kit</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Headlights')">Headlights</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Tail Lights')">Tail Lights</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Windshield Wipers')">Wiper Blades</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Radiator')">Radiator</button>
-                    <button onclick="searchAmazonSpecific('${year}', '${make}', '${model}', 'Battery')">Battery</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Brake Pads')">Brake Pads</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Oil Filter')">Oil Filter</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Air Filter')">Air Filter</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Spark Plugs')">Spark Plugs</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Suspension Kit')">Suspension Kit</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Headlights')">Headlights</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Tail Lights')">Tail Lights</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Windshield Wipers')">Wiper Blades</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Radiator')">Radiator</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Battery')">Battery</button>
                     </div>
             `;
             productContentDiv.innerHTML = htmlContent;
+
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            const currentSearchVehicleSpan = document.getElementById('currentSearchVehicle');
+
+            if (vehicleSelect) {
+                vehicleSelect.addEventListener('change', (event) => {
+                    const selectedIndex = parseInt(event.target.value);
+                    selectedVehicleForSearch = vehicles[selectedIndex];
+                    currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
+                    loadVehicleForProducts(); 
+                });
+            }
 
             const generalSearchInput = document.getElementById('generalProductSearch');
             const generalSearchButton = document.getElementById('generalSearchButton'); 
@@ -886,7 +920,7 @@ async function loadVehicleForProducts() {
                     if (event.key === 'Enter') {
                         event.preventDefault(); 
                         setButtonLoading(generalSearchButton, true); 
-                        searchAmazonGeneral(year, make, model);
+                        searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model); 
                         setButtonLoading(generalSearchButton, false); 
                     }
                 });
@@ -895,7 +929,7 @@ async function loadVehicleForProducts() {
             if (generalSearchButton) { 
                 generalSearchButton.addEventListener('click', () => {
                     setButtonLoading(generalSearchButton, true); 
-                    searchAmazonGeneral(year, make, model);
+                    searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model); 
                     setButtonLoading(generalSearchButton, false); 
                 });
             }
@@ -1031,17 +1065,6 @@ async function getWishlistFromFirestore() {
     }
 }
 
-async function loadProfile() {
-    const profileEmailSpan = document.getElementById('profileEmail');
-    if (profileEmailSpan) {
-        if (auth.currentUser) {
-            profileEmailSpan.textContent = auth.currentUser.email;
-        } else {
-            profileEmailSpan.textContent = "Not logged in";
-        }
-    }
-}
-
 function checkPasswordStrength(password) {
     let score = 0;
     if (password.length > 5) score++;
@@ -1061,4 +1084,15 @@ function updatePasswordStrengthIndicator(strength) {
         document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
         document.getElementById('passwordStrength').className = `password-strength ${strength}`;
     }
+}
+
+const FIRESTORE_VEHICLES_FIELD = 'vehicles'; 
+const MAX_VEHICLES = 3; 
+
+function getUserGarageDocRef() {
+    if (!auth.currentUser) {
+        showNotification("Please log in to manage your garage.", "error");
+        return null;
+    }
+    return doc(db, "garages", auth.currentUser.uid);
 }

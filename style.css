@@ -533,6 +533,40 @@ form button.is-loading {
     text-decoration: underline;
 }
 
+/* NEW: Select Vehicle Dropdown Styling */
+.select-vehicle-container {
+    text-align: center;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.select-vehicle-container label {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.select-vehicle-container select {
+    padding: 0.6rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    max-width: 300px; /* Limit width */
+    width: 100%;
+    background-color: #fff;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.select-vehicle-container select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
 
 /* Accessibility - Visually hidden class */
 .sr-only {
@@ -720,7 +754,7 @@ footer .container {
     display: block; /* Ensure it takes its own line */
 }
 
-/* NEW: Profile Page Styles */
+/* Profile Page Styles */
 .profile-info-card {
     background-color: #fff;
     padding: 2rem;
@@ -765,4 +799,18 @@ footer .container {
 .profile-info-card button:hover {
     background: #0056b3;
     transform: translateY(-1px);
+}
+
+/* Specific styling for the Change Password button on profile page */
+#profile #changePasswordBtn {
+    background-color: #e53935; /* Using your red accent */
+    margin-top: 2rem; /* More space to separate from profile update form */
+    width: 100%;
+    max-width: 250px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#profile #changePasswordBtn:hover {
+    background-color: #c62828;
 }
