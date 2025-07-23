@@ -404,7 +404,6 @@ if (forgotPasswordLink) {
 const toggleLoginPassBtn = document.getElementById('toggleLoginPass');
 const loginPassInput = document.getElementById('loginPass');
 const toggleRegPassBtn = document.getElementById('toggleRegPass');
-// const regPassInput = document.getElementById('regPass'); // Already declared above
 
 if (toggleLoginPassBtn) {
     toggleLoginPassBtn.addEventListener('click', () => {
@@ -452,7 +451,7 @@ async function getSavedVehiclesFromFirestore() {
         }
         return [];
     } catch (error) {
-        console.error("Error getting vehicles from Firestore:", error);
+        console.error("Error getting vehicles from Firestore:", error); // Console log for debugging
         showNotification("Error loading saved vehicles.", "error");
         return [];
     }
@@ -508,7 +507,7 @@ async function deleteVehicle(index, button) {
             renderSavedVehicles(); 
         }
     } catch (error) {
-        console.error("Error deleting vehicle:", error);
+        console.error("Error deleting vehicle:", error); // Console log for debugging
         showNotification("Error deleting vehicle: " + error.message, "error");
     } finally {
         setButtonLoading(button, false);
@@ -516,6 +515,7 @@ async function deleteVehicle(index, button) {
 }
 
 garageForm.addEventListener('submit', async (e) => {
+    console.log("Garage form submitted!"); // NEW: Log at start of submit handler
     e.preventDefault();
     const makeInput = document.getElementById("make"); 
     const modelInput = document.getElementById("model");
@@ -526,7 +526,8 @@ garageForm.addEventListener('submit', async (e) => {
     
     if (!auth.currentUser) {
         showNotification("Please log in to save your vehicle.", "error"); 
-        console.warn("Attempted to save vehicle without being logged in.");
+        console.warn("Attempted to save vehicle without being logged in."); // Console log for debugging
+        setButtonLoading(submitBtn, false); // NEW: Ensure button resets
         return;
     }
 
@@ -541,14 +542,20 @@ garageForm.addEventListener('submit', async (e) => {
 
     if (!isValid) {
         showNotification('Please correct the errors in the form.', 'error');
+        console.warn("Form validation failed."); // Console log for debugging
+        setButtonLoading(submitBtn, false); // NEW: Ensure button resets
         return;
     }
 
+    console.log("Validation passed, setting button loading."); // NEW: Log after validation
     setButtonLoading(submitBtn, true); 
 
     try {
         const userDocRef = getUserGarageDocRef();
+        console.log("Getting user document snapshot..."); // NEW: Log before getDoc
         const userDocSnap = await getDoc(userDocRef);
+        console.log("User document snapshot received:", userDocSnap.exists() ? userDocSnap.data() : "Does not exist"); // NEW: Log snapshot data
+        
         let vehicles = [];
 
         if (userDocSnap.exists()) {
@@ -557,34 +564,39 @@ garageForm.addEventListener('submit', async (e) => {
 
         if (vehicles.length >= MAX_VEHICLES) {
             showNotification(`You can save a maximum of ${MAX_VEHICLES} vehicles. Please delete one to add a new one.`, 'error', 5000);
+            console.warn("Max vehicles reached."); // Console log for debugging
+            setButtonLoading(submitBtn, false); // NEW: Ensure button resets
             return; 
         }
 
         const newVehicle = { make, model, year }; 
+        console.log("New vehicle data:", newVehicle); // NEW: Log new vehicle
 
         if (!userDocSnap.exists() || !userDocSnap.data().hasOwnProperty(FIRESTORE_VEHICLES_FIELD)) {
-            // If document doesn't exist OR 'vehicles' field doesn't exist, create it with setDoc
+            console.log("Document or vehicles field missing, using setDoc."); // NEW: Log path
             await setDoc(userDocRef, {
-                [FIRESTORE_VEHICLES_FIELD]: [newVehicle], // Initialize as array with first vehicle
+                [FIRESTORE_VEHICLES_FIELD]: [newVehicle], 
                 timestamp: serverTimestamp() 
             });
         } else {
-            // If 'vehicles' field already exists, use arrayUnion
+            console.log("Vehicles field exists, using updateDoc with arrayUnion."); // NEW: Log path
             await updateDoc(userDocRef, {
                 [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle),
                 timestamp: serverTimestamp() 
             });
         }
         
-        showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, 'success');
+        showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, 'success'); 
+        console.log("Vehicle saved successfully to Firestore!"); // Console log for debugging
         garageForm.reset();
         renderSavedVehicles(); 
         loadVehicleForProducts(); 
-    } catch (err) {
+    } catch (err) { 
+        console.error("Error in garageForm submit handler:", err); // VERY IMPORTANT: Catches errors
         showNotification("Error saving vehicle: " + err.message, "error", 5000); 
-        console.error("Error saving vehicle:", err);
     } finally {
         setButtonLoading(submitBtn, false); 
+        console.log("Finished garage form submission process."); // NEW: Log end
     }
 });
 
@@ -608,7 +620,6 @@ async function loadVehicleForProducts() {
         const vehicles = await getSavedVehiclesFromFirestore(); 
 
         if (vehicles.length > 0) {
-            // For now, we'll just use the first saved vehicle for product searches.
             const { year, make, model } = vehicles[0]; 
             
             let htmlContent = `
@@ -637,7 +648,6 @@ async function loadVehicleForProducts() {
             `;
             productContentDiv.innerHTML = htmlContent;
 
-            // IMPORTANT: Add event listener here because the elements are created dynamically
             const generalSearchInput = document.getElementById('generalProductSearch');
             const generalSearchButton = document.getElementById('generalSearchButton'); 
 
@@ -667,7 +677,7 @@ async function loadVehicleForProducts() {
              showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000); 
         }
     } catch (err) {
-        console.error("Error loading vehicle for products page:", err);
+        console.error("Error loading vehicle for products page:", err); // Console log for debugging
         productContentDiv.innerHTML = `
             <div class="no-vehicle-message">
                 <h3>Error Loading Vehicle</h3>
@@ -751,7 +761,7 @@ async function getWishlistFromFirestore() {
         }
         return [];
     } catch (error) {
-        console.error("Error getting wishlist from Firestore:", error);
+        console.error("Error getting wishlist from Firestore:", error); // Console log for debugging
         showNotification("Error loading wishlist from server.", "error");
         return [];
     }
@@ -777,7 +787,7 @@ async function addToWishlist(product) {
             showNotification(`${product.name} is already in your wishlist.`, "info");
         }
     } catch (error) {
-        console.error("Error adding to wishlist:", error);
+        console.error("Error adding to wishlist:", error); // Console log for debugging
         showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
     }
 }
@@ -802,7 +812,7 @@ async function removeFromWishlist(productId, button) {
             showNotification("Product not found in wishlist (already removed?).", "info");
         }
     } catch (error) {
-        console.error("Error removing from wishlist:", error);
+        console.error("Error removing from wishlist:", error); // Console log for debugging
         showNotification("Failed to remove product from wishlist: " + error.message, "error");
     } finally {
         setButtonLoading(button, false);
@@ -822,7 +832,7 @@ async function clearWishlist(button) {
         showNotification("Wishlist cleared!", "info");
         loadWishlist(); 
     } catch (error) {
-        console.error("Error clearing wishlist:", error);
+        console.error("Error clearing wishlist:", error); // Console log for debugging
         showNotification("Failed to clear wishlist: " + error.message, "error");
     } finally {
         setButtonLoading(button, false);
@@ -887,7 +897,7 @@ function loadProfile() {
 if (updateProfileBtn) {
     updateProfileBtn.addEventListener('click', () => {
         showNotification("Update Profile functionality is coming soon!", "info");
-        console.log("Update Profile button clicked.");
+        console.log("Update Profile button clicked."); // Console log for debugging
     });
 }
 
@@ -897,13 +907,13 @@ if (changePasswordBtn) {
         const user = auth.currentUser;
         if (user) {
             showNotification("Change Password functionality: A password reset email will be sent.", "info");
-            console.log("Change Password button clicked.");
+            console.log("Change Password button clicked."); // Console log for debugging
             try {
                 await sendPasswordResetEmail(auth, user.email);
                 showNotification(`Password change email sent to ${user.email}. Please check your inbox.`, 'success', 7000);
             } catch (error) {
+                console.error("Change password email error:", error); // Console log for debugging
                 showNotification(`Failed to send password change email: ${error.message}`, 'error', 7000);
-                console.error("Change password email error:", error);
             }
         } else {
             showNotification("Please log in to change your password.", "error");
@@ -914,6 +924,7 @@ if (changePasswordBtn) {
 
 // --- Contact Form Submission Handling (Formspree Integration) ---
 document.getElementById('contactForm').addEventListener('submit', async function(e) {
+    console.log("Contact form submitted!"); // NEW: Log at start of submit handler
     e.preventDefault(); 
     const form = e.target;
     const submitBtn = e.submitter;
@@ -931,6 +942,7 @@ document.getElementById('contactForm').addEventListener('submit', async function
     
     if (!isValid) {
         showNotification('Please fill in all required fields.', 'error');
+        console.warn("Contact form validation failed."); // Console log for debugging
         return;
     }
 
@@ -948,6 +960,7 @@ document.getElementById('contactForm').addEventListener('submit', async function
         if (response.ok) {
             showNotification("Message sent successfully! We'll get back to you soon.", "success");
             form.reset(); 
+            console.log("Contact form submission successful!"); // Console log for debugging
         } else {
             const data = await response.json();
             if (data && data.errors) {
@@ -955,12 +968,14 @@ document.getElementById('contactForm').addEventListener('submit', async function
             } else {
                 showNotification("Failed to send message. Please try again later.", "error", 5000);
             }
+            console.error("Contact form submission failed:", data); // Console log for debugging
         }
     } catch (error) {
         showNotification("Network error or failed to send message. Please check your connection.", "error", 5000);
-        console.error("Contact form submission error:", error);
+        console.error("Contact form submission error:", error); // Console log for debugging
     } finally {
         setButtonLoading(submitBtn, false); 
+        console.log("Finished contact form submission process."); // Console log for debugging
     }
 });
 
