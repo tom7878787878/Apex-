@@ -62,9 +62,8 @@ let wishlistEmptyMessage;
 
 // --- Profile Elements (assigned in DOMContentLoaded) ---
 let profileEmailSpan;
-let updateProfileBtn;
+// let updateProfileBtn; // This was for a placeholder, now using updateProfileForm
 let changePasswordBtn;
-// NEW PROFILE FORM ELEMENTS
 let updateProfileForm;
 let displayNameInput;
 let saveProfileBtn;
@@ -215,7 +214,7 @@ function updateAuthStateUI(user, emailSpanElement) {
         renderSavedVehicles(); 
         loadWishlist(); 
         loadProfile(); 
-        showNotification(`Welcome, ${user.email}!`, 'success', 2000); 
+        showNotification(`Welcome, ${user.displayName || user.email}!`, 'success', 2000); 
     } else {
         emailSpanElement.textContent = "";
         if (document.querySelector(".page.active")?.id === "garage" || 
@@ -253,9 +252,13 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleLoginPassBtn = document.getElementById('toggleLoginPass');
     toggleRegPassBtn = document.getElementById('toggleRegPass');
     forgotPasswordLink = document.querySelector('.forgot-password-link');
+    // Create and insert password strength indicator here
     passwordStrengthIndicator = document.createElement('div'); 
     passwordStrengthIndicator.id = 'passwordStrength';
     passwordStrengthIndicator.className = 'password-strength';
+    if (regPassInput) {
+        regPassInput.parentNode.insertBefore(passwordStrengthIndicator, regPassInput.nextSibling);
+    }
 
     // Assign Garage Form Elements
     garageForm = document.getElementById('garageForm');
@@ -273,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Profile Elements
     profileEmailSpan = document.getElementById('profileEmail');
-    updateProfileBtn = document.getElementById('updateProfileBtn');
+    // updateProfileBtn = document.getElementById('updateProfileBtn'); // Removed as per discussion
     changePasswordBtn = document.getElementById('changePasswordBtn');
     updateProfileForm = document.getElementById('updateProfileForm');
     displayNameInput = document.getElementById('displayNameInput');
@@ -403,8 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Password Strength Indicator (for Registration Form)
-        if (regPassInput && !document.getElementById('passwordStrength')) { 
-            regPassInput.parentNode.insertBefore(passwordStrengthIndicator, regPassInput.nextSibling);
+        if (regPassInput && passwordStrengthIndicator) { 
             regPassInput.addEventListener('input', () => {
                 const password = regPassInput.value;
                 const strength = checkPasswordStrength(password);
@@ -641,12 +643,45 @@ document.addEventListener('DOMContentLoaded', () => {
     } else { console.warn("Clear Wishlist Button not found."); }
 
 
-    // Profile Page Buttons
-    if (updateProfileBtn) {
-        updateProfileBtn.addEventListener('click', () => {
-            showNotification("Update Profile functionality is coming soon!", "info");
+    // Profile Page Functionality
+    // Replaced the simple updateProfileBtn with the form submission for displayName
+    if (updateProfileForm && displayNameInput && saveProfileBtn) {
+        updateProfileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            const newDisplayName = displayNameInput.value.trim();
+            const submitBtn = saveProfileBtn;
+
+            clearFormErrors('updateProfileForm');
+
+            if (!user) {
+                showNotification("You must be logged in to update your profile.", "error");
+                return;
+            }
+
+            // Basic validation
+            if (!newDisplayName) {
+                displayFormError('displayNameError', 'Display name cannot be empty.');
+                showNotification('Please enter a display name.', 'error');
+                return;
+            }
+
+            setButtonLoading(submitBtn, true);
+
+            try {
+                await updateProfile(user, {
+                    displayName: newDisplayName
+                });
+                showNotification("Profile updated successfully!", "success");
+                loadProfile(); // Re-render profile info
+            } catch (error) {
+                console.error("Error updating profile:", error);
+                showNotification(`Failed to update profile: ${error.message}`, "error");
+            } finally {
+                setButtonLoading(submitBtn, false);
+            }
         });
-    } else { console.warn("Update Profile button not found."); }
+    } else { console.warn("Update Profile Form or its elements not found."); }
 
     if (changePasswordBtn) {
         changePasswordBtn.addEventListener('click', async () => {
@@ -656,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     await sendPasswordResetEmail(auth, user.email);
                     showNotification(`Password change email sent to ${user.email}. Please check your inbox.`, 'success', 7000);
+                } <<<<<<< HEAD
                 } catch (error) {
                     console.error("Change password email error:", error); 
                     showNotification(`Failed to send password change email: ${error.message}`, 'error', 7000);
@@ -761,13 +797,6 @@ async function getSavedVehiclesFromFirestore() {
         return [];
     }
 }
-
-// renderSavedVehicles and deleteVehicle are now within DOMContentLoaded scope via their calls
-// but the functions themselves need to be defined once globally or in a scope accessible by their calls
-// I've moved them out, assuming they are indeed globally accessible or called from global context.
-
-// These are still good to be defined globally as they are called from multiple places
-// and rely on DOM elements that might not be available at the very start of the script.
 
 async function renderSavedVehicles() {
     const savedVehiclesContainer = document.getElementById('savedVehicles');
@@ -908,6 +937,7 @@ async function loadVehicleForProducts() {
                     const selectedIndex = parseInt(event.target.value);
                     selectedVehicleForSearch = vehicles[selectedIndex];
                     currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
+                    // Re-render product content with updated selected vehicle
                     loadVehicleForProducts(); 
                 });
             }
@@ -1065,6 +1095,47 @@ async function getWishlistFromFirestore() {
     }
 }
 
+async function loadWishlist() {
+    const wishlistItemsContainer = document.getElementById('wishlistItems');
+    if (!wishlistItemsContainer) return;
+
+    wishlistItemsContainer.innerHTML = '<p class="no-items-message">Loading your wishlist...</p>';
+
+    if (!auth.currentUser) {
+        wishlistItemsContainer.innerHTML = `
+            <p class="no-items-message">Please log in to see your wishlist, or add some products from the Products page!</p>
+        `;
+        return;
+    }
+
+    try {
+        const wishlist = await getWishlistFromFirestore();
+
+        if (wishlist.length === 0) {
+            wishlistItemsContainer.innerHTML = '<p class="no-items-message">Your wishlist is empty. Add some products from the Products page!</p>';
+        } else {
+            wishlistItemsContainer.innerHTML = ''; // Clear loading message
+            wishlist.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'card';
+                productCard.innerHTML = `
+                    <img src="${product.imageUrl}" alt="${product.name}">
+                    <h4>${product.name}</h4>
+                    <p>${product.brand} – $${product.price.toFixed(2)}</p>
+                    <a href="${product.amazonUrl}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${product.name} on Amazon">Buy on Amazon</a>
+                    <button class="remove-from-wishlist-btn" data-product-id="${product.id}">Remove from Wishlist</button>
+                `;
+                wishlistItemsContainer.appendChild(productCard);
+            });
+        }
+    } catch (error) {
+        console.error("Error rendering wishlist:", error);
+        wishlistItemsContainer.innerHTML = '<p class="no-items-message">Error loading wishlist items.</p>';
+        showNotification("Error loading wishlist items: " + error.message, "error");
+    }
+}
+
+
 function checkPasswordStrength(password) {
     let score = 0;
     if (password.length > 5) score++;
@@ -1080,19 +1151,24 @@ function checkPasswordStrength(password) {
 }
 
 function updatePasswordStrengthIndicator(strength) {
-    if (document.getElementById('passwordStrength')) {
-        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
-        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
+    if (passwordStrengthIndicator) { // Use the global variable directly
+        passwordStrengthIndicator.textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        passwordStrengthIndicator.className = `password-strength ${strength}`;
     }
 }
 
-const FIRESTORE_VEHICLES_FIELD = 'vehicles'; 
-const MAX_VEHICLES = 3; 
-
-function getUserGarageDocRef() {
-    if (!auth.currentUser) {
-        showNotification("Please log in to manage your garage.", "error");
-        return null;
+async function loadProfile() {
+    const user = auth.currentUser;
+    if (!profileEmailSpan || !displayNameInput) {
+        console.warn("Profile elements not found for loading.");
+        return;
     }
-    return doc(db, "garages", auth.currentUser.uid);
+
+    if (user) {
+        profileEmailSpan.textContent = user.email;
+        displayNameInput.value = user.displayName || ''; // Populate display name if available
+    } else {
+        profileEmailSpan.textContent = "Not logged in";
+        displayNameInput.value = '';
+    }
 }
