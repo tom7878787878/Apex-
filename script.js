@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (error.code === 'auth/invalid-email') {
                     errorMessage = "Invalid email address.";
                     displayFormError('loginEmailError', errorMessage);
-                } else if (error.code === 'auth/user-not-found') {
+                } else if (err.code === 'auth/user-not-found') {
                     errorMessage = "No user found with that email.";
                     displayFormError('loginEmailError', errorMessage);
                 } else {
@@ -524,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- My Garage Section (Firebase) ---
     if (garageForm && makeInput && modelInput && yearInput && savedVehiclesContainer && noVehiclesMessage) {
         garageForm.addEventListener('submit', async (e) => {
-            console.log("Garage form submitted.");
+            console.log("Garage form submit handler triggered.");
             e.preventDefault();
             const submitBtn = e.submitter;
 
@@ -606,8 +606,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, "success");
                 garageForm.reset();
-                renderSavedVehicles();
-                loadVehicleForProducts();
+                // MODIFIED: Add a small delay before rendering saved vehicles and products page
+                // This helps ensure Firestore has time to synchronize the write operation.
+                setTimeout(async () => {
+                    await renderSavedVehicles();
+                    await loadVehicleForProducts();
+                }, 500); // 500ms delay
                 console.log("Vehicle save process completed successfully.");
             } catch (err) {
                 console.error("Unhandled error during garage form submission:", err);
@@ -817,9 +821,10 @@ async function renderSavedVehicles() {
         return;
     }
 
-    savedVehiclesContainer.innerHTML = '';
+    savedVehiclesContainer.innerHTML = ''; // Clear previous content
     noVehiclesMessage.textContent = 'Loading your vehicles...';
     noVehiclesMessage.style.display = 'block';
+    savedVehiclesContainer.appendChild(noVehiclesMessage); // Ensure loading message is in container
 
 
     if (!auth.currentUser) {
@@ -829,13 +834,14 @@ async function renderSavedVehicles() {
 
     try {
         const vehicles = await getSavedVehiclesFromFirestore();
-        savedVehiclesContainer.innerHTML = '';
+        savedVehiclesContainer.innerHTML = ''; // Clear loading message now that data is fetched
 
         if (vehicles.length === 0) {
             noVehiclesMessage.textContent = 'No vehicles saved yet. Add one above!';
             noVehiclesMessage.style.display = 'block';
+            savedVehiclesContainer.appendChild(noVehiclesMessage); // Ensure the message is actually inside the container
         } else {
-            noVehiclesMessage.style.display = 'none';
+            noVehiclesMessage.style.display = 'none'; // Hide the message if vehicles exist
             vehicles.forEach((vehicle, index) => {
                 const vehicleCard = document.createElement('div');
                 vehicleCard.className = 'vehicle-card';
@@ -855,6 +861,7 @@ async function renderSavedVehicles() {
                 savedVehiclesContainer.appendChild(vehicleCard);
             });
 
+            // Attach listeners after all cards are added
             document.querySelectorAll('#savedVehicles .delete-vehicle-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
                     const vehicleToDelete = {
@@ -870,6 +877,7 @@ async function renderSavedVehicles() {
         console.error("Error in renderSavedVehicles:", error);
         noVehiclesMessage.textContent = 'Error loading your vehicles. Please try again.';
         noVehiclesMessage.style.display = 'block';
+        savedVehiclesContainer.appendChild(noVehiclesMessage); // Ensure error message is in container
         showNotification("Error loading saved vehicles: " + error.message, "error", 5000);
     }
 }
@@ -919,8 +927,9 @@ async function loadVehicleForProducts() {
         const vehicles = await getSavedVehiclesFromFirestore();
 
         if (vehicles.length > 0) {
+            // Ensure selectedVehicleForSearch is always a valid vehicle from the current list
             if (!selectedVehicleForSearch || !vehicles.some(v => v.make === selectedVehicleForSearch.make && v.model === selectedVehicleForSearch.model && v.year === selectedVehicleForSearch.year)) {
-                selectedVehicleForSearch = vehicles[0];
+                selectedVehicleForSearch = vehicles[0]; // Default to the first vehicle if none selected or old one removed
             }
 
             let vehicleOptionsHtml = vehicles.map((v, i) => `
@@ -972,7 +981,7 @@ async function loadVehicleForProducts() {
                     const selectedIndex = parseInt(event.target.value);
                     selectedVehicleForSearch = vehicles[selectedIndex];
                     currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
-                    loadVehicleForProducts();
+                    loadVehicleForProducts(); // Re-render to update category buttons based on new selection
                 });
             }
 
@@ -1150,16 +1159,17 @@ async function loadWishlist() {
     wishlistInitialMessage.textContent = 'Loading your wishlist...';
     wishlistInitialMessage.style.display = 'block';
     clearWishlistButton.style.display = 'none';
+    wishlistItemsContainer.appendChild(wishlistInitialMessage); // Ensure loading message is in container
+
 
     if (!auth.currentUser) {
         wishlistInitialMessage.textContent = 'Please log in to see your wishlist, or add some products from the Products page!';
-        wishlistItemsContainer.appendChild(wishlistInitialMessage);
         return;
     }
 
     try {
         const wishlist = await getWishlistFromFirestore();
-        wishlistItemsContainer.innerHTML = '';
+        wishlistItemsContainer.innerHTML = ''; // Clear loading message now that data is fetched
 
         if (wishlist.length === 0) {
             wishlistInitialMessage.textContent = 'Your wishlist is empty. Add some products from the Products page!';
@@ -1187,6 +1197,7 @@ async function loadWishlist() {
         console.error("Error in loadWishlist:", error);
         wishlistItemsContainer.innerHTML = '<p class="no-items-message">Error loading your wishlist.</p>';
         clearWishlistButton.style.display = 'none';
+        wishlistItemsContainer.appendChild(wishlistInitialMessage); // Ensure error message is in container
         showNotification("Error loading wishlist: " + error.message, "error", 5000);
     }
 }
