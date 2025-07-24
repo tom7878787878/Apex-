@@ -202,6 +202,8 @@ function setButtonLoading(button, isLoading) {
 
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
+    // ADDED FOR DEBUGGING: Alert to check if auth state change is being processed
+    alert('Auth State Changed! User: ' + (user ? user.email : 'None'));
     console.log("Auth state changed. User:", user ? user.email : "none");
     // ADDED/MODIFIED: Ensure userEmailSpan is available before trying to update it.
     // The DOMContentLoaded listener handles the initial assignment.
@@ -253,6 +255,8 @@ function updateAuthStateUI(user, emailSpanElement) {
 
 // --- DOMContentLoaded: Assign elements and attach all listeners ---
 document.addEventListener('DOMContentLoaded', () => {
+    // ADDED FOR DEBUGGING: Alert to check if DOMContentLoaded fired
+    alert('DOMContentLoaded Fired!');
     console.log("DOMContentLoaded fired. Assigning DOM elements and attaching listeners.");
 
     // Assign Global DOM Elements
@@ -912,4 +916,379 @@ async function renderSavedVehicles() {
     }
 }
 
-// ADDED/MODIFIED: Modified deleteVehicle to use array
+// ADDED/MODIFIED: Modified deleteVehicle to use arrayRemove based on the actual vehicle object
+async function deleteVehicle(vehicleToDelete, button) {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) { // getUserGarageDocRef already shows notification
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        // Use arrayRemove with the exact object to remove it from the Firestore array
+        await updateDoc(userDocRef, {
+            [FIRESTORE_VEHICLES_FIELD]: arrayRemove(vehicleToDelete)
+        });
+        showNotification(`Vehicle "${vehicleToDelete.year} ${vehicleToDelete.make} ${vehicleToDelete.model}" deleted.`, 'info');
+        renderSavedVehicles(); // Re-render after successful delete
+        loadVehicleForProducts(); // Update products page vehicle selection
+    } catch (error) {
+        console.error("Error deleting vehicle:", error);
+        showNotification("Error deleting vehicle: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function loadVehicleForProducts() {
+    const productContentDiv = document.getElementById('productContent');
+    if (!productContentDiv) return;
+
+    // ADDED/MODIFIED: Clear and show loading state
+    productContentDiv.innerHTML = '<p class="no-items-message">Loading vehicle search options...</p>';
+
+
+    if (!auth.currentUser) {
+        productContentDiv.innerHTML = `
+            <div class="no-vehicle-message">
+                <h3>Please Log In or Save Your Vehicle</h3>
+                <p>To get personalized part searches, please <a href="#" onclick="showPage('auth')">log in</a> or go to <a href="#" onclick="showPage('garage')">My Garage</a> to save your vehicle details.</p>
+            </div>
+        `;
+        selectedVehicleForSearch = null; // Reset selected vehicle if user logs out or is not logged in
+        return;
+    }
+
+    try {
+        const vehicles = await getSavedVehiclesFromFirestore();
+
+        if (vehicles.length > 0) {
+            // Set the initially selected vehicle (either the first one, or the previously selected one)
+            // ADDED/MODIFIED: More robust check to ensure selectedVehicleForSearch is actually in the *current* vehicles list
+            if (!selectedVehicleForSearch || !vehicles.some(v => v.make === selectedVehicleForSearch.make && v.model === selectedVehicleForSearch.model && v.year === selectedVehicleForSearch.year)) {
+                selectedVehicleForSearch = vehicles[0]; // Default to the first vehicle if none selected or old one removed
+            }
+
+            let vehicleOptionsHtml = vehicles.map((v, i) => `
+                <option value="${i}" ${
+                    (selectedVehicleForSearch && v.make === selectedVehicleForSearch.make && v.model === selectedVehicleForSearch.model && v.year === selectedVehicleForSearch.year)
+                    ? 'selected' : ''
+                }>
+                    ${v.year} ${v.make} ${v.model}
+                </option>
+            `).join('');
+
+            let htmlContent = `
+                <div class="select-vehicle-container">
+                    <label for="vehicleSelect">Select Your Vehicle:</label>
+                    <select id="vehicleSelect">
+                        ${vehicleOptionsHtml}
+                    </select>
+                </div>
+
+                <h3 style="text-align: center; margin-top: 2rem;">Parts for Your <span id="currentSearchVehicle">${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}</span></h3>
+
+                <div class="general-search-section">
+                    <label for="generalProductSearch" class="sr-only">Search Parts by Keyword</label>
+                    <input type="text" id="generalProductSearch" placeholder="Search for any part (e.g., 'alternator')" />
+                    <button id="generalSearchButton">Search</button>
+                </div>
+
+                <p style="text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;">Or click a category below to search Amazon directly for your vehicle:</p>
+                <div class="category-buttons">
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Brake Pads')">Brake Pads</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Oil Filter')">Oil Filter</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Air Filter')">Air Filter</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Spark Plugs')">Spark Plugs</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Suspension Kit')">Suspension Kit</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Headlights')">Headlights</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Tail Lights')">Tail Lights</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Windshield Wipers')">Wiper Blades</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Radiator')">Radiator</button>
+                    <button onclick="searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Battery')">Battery</button>
+                    </div>
+            `;
+            productContentDiv.innerHTML = htmlContent;
+
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            const currentSearchVehicleSpan = document.getElementById('currentSearchVehicle');
+
+            if (vehicleSelect) {
+                vehicleSelect.addEventListener('change', (event) => {
+                    const selectedIndex = parseInt(event.target.value);
+                    selectedVehicleForSearch = vehicles[selectedIndex];
+                    currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
+                    // ADDED/MODIFIED: Re-call loadVehicleForProducts to regenerate the category buttons with the new vehicle's data
+                    loadVehicleForProducts();
+                });
+            }
+
+            const generalSearchInput = document.getElementById('generalProductSearch');
+            const generalSearchButton = document.getElementById('generalSearchButton');
+
+            if (generalSearchInput && generalSearchButton) { // ADDED/MODIFIED: Check both elements exist
+                generalSearchInput.addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        // setButtonLoading is not strictly needed here since it's an external link
+                        searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
+                    }
+                });
+
+                generalSearchButton.addEventListener('click', () => {
+                    // setButtonLoading not strictly needed here
+                    searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
+                });
+            }
+
+
+        } else {
+            productContentDiv.innerHTML = `
+                <div class="no-vehicle-message">
+                    <h3>No Vehicle Saved</h3>
+                    <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
+                </div>
+            `;
+             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
+        }
+    } catch (err) {
+        console.error("Error loading vehicle for products page:", err);
+        productContentDiv.innerHTML = `
+            <div class="no-vehicle-message">
+                <h3>Error Loading Vehicle</h3>
+                <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
+            </div>
+        `;
+        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
+    }
+}
+
+window.searchAmazonSpecific = function(year, make, model, partType) {
+    const query = `${partType} ${year} ${make} ${model}`;
+    const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+    window.open(url, "_blank");
+}
+
+window.searchAmazonGeneral = function(year, make, model) {
+    const searchInput = document.getElementById('generalProductSearch');
+    let query = searchInput.value.trim();
+
+    if (query) {
+        query = `${query} ${year} ${make} ${model}`;
+        const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+        window.open(url, "_blank");
+        searchInput.value = '';
+    } else {
+        showNotification("Please enter a search term.", "info");
+    }
+}
+
+async function addToWishlist(product) {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) {
+        // ADDED/MODIFIED: Show notification if not logged in
+        showNotification("Please log in to add items to your wishlist.", "error");
+        return;
+    }
+
+    try {
+        const currentWishlist = await getWishlistFromFirestore();
+        const exists = currentWishlist.some(item => item.id === product.id);
+
+        if (!exists) {
+            await updateDoc(userDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: arrayUnion(product) // ADDED/MODIFIED: Use constant
+            });
+            showNotification(`${product.name} added to wishlist!`, "success");
+            // ADDED/MODIFIED: Only load wishlist if currently on wishlist page
+            if (document.querySelector('.page.active')?.id === 'wishlist') {
+                loadWishlist();
+            }
+        } else {
+            showNotification(`${product.name} is already in your wishlist.`, "info");
+        }
+    } catch (error) {
+        console.error("Error adding to wishlist:", error);
+        showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
+    }
+}
+
+async function removeFromWishlist(productId, button) {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) {
+        // ADDED/MODIFIED: Show notification if not logged in
+        showNotification("Please log in to manage your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        const currentWishlist = await getWishlistFromFirestore();
+        // ADDED/MODIFIED: Find the exact item object to remove using arrayRemove.
+        // `arrayRemove` requires an exact match of the object in the array.
+        const itemToRemove = currentWishlist.find(item => item.id === productId);
+
+        if (itemToRemove) {
+            await updateDoc(userDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove) // ADDED/MODIFIED: Use constant
+            });
+            showNotification("Product removed from wishlist.", "info");
+            loadWishlist(); // ADDED/MODIFIED: Re-render after removal
+        } else {
+            showNotification("Product not found in wishlist (it might have been removed already).", "info");
+        }
+    } catch (error) {
+        console.error("Error removing from wishlist:", error);
+        showNotification("Failed to remove product from wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function clearWishlist(button) {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) {
+        // ADDED/MODIFIED: Show notification if not logged in
+        showNotification("Please log in to clear your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        await updateDoc(userDocRef, {
+            [FIRESTORE_WISHLIST_FIELD]: [] // ADDED/MODIFIED: Use constant to set the wishlist array to empty
+        });
+        showNotification("Wishlist cleared!", "info");
+        loadWishlist(); // ADDED/MODIFIED: Re-render after clearing
+    } catch (error) {
+        console.error("Error clearing wishlist:", error);
+        showNotification("Failed to clear wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function getWishlistFromFirestore() {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) { // ADDED/MODIFIED: Explicit check here. getUserGarageDocRef already shows notification
+        console.log("getWishlistFromFirestore: Not logged in, returning empty array.");
+        return [];
+    }
+
+    try {
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            return data[FIRESTORE_WISHLIST_FIELD] || []; // ADDED/MODIFIED: Use constant
+        }
+        return [];
+    } catch (error) {
+        console.error("Error getting wishlist from Firestore:", error);
+        showNotification("Error loading wishlist.", "error"); // Keep notification here
+        return [];
+    }
+}
+
+// ADDED/MODIFIED: Completed loadWishlist function
+async function loadWishlist() {
+    // ADDED/MODIFIED: Re-fetching elements to ensure they are current in case DOM was manipulated
+    const wishlistItemsContainer = document.getElementById('wishlistItems');
+    const clearWishlistButton = document.getElementById('clearWishlistBtn');
+    const wishlistInitialMessage = document.querySelector('#wishlistItems .no-items-message');
+
+    if (!wishlistItemsContainer || !wishlistInitialMessage || !clearWishlistButton) {
+        console.warn("Wishlist display elements not found for rendering.");
+        return;
+    }
+
+    // Clear previous content and show loading state
+    wishlistItemsContainer.innerHTML = '';
+    wishlistInitialMessage.textContent = 'Loading your wishlist...';
+    wishlistInitialMessage.style.display = 'block'; // Ensure the loading message is visible
+    clearWishlistButton.style.display = 'none'; // Hide clear button during loading
+
+    if (!auth.currentUser) {
+        wishlistInitialMessage.textContent = 'Please log in to see your wishlist, or add some products from the Products page!';
+        // Ensure only the message is shown if logged out
+        wishlistItemsContainer.appendChild(wishlistInitialMessage);
+        return;
+    }
+
+    try {
+        const wishlist = await getWishlistFromFirestore();
+        wishlistItemsContainer.innerHTML = ''; // Clear loading message now that data is fetched
+
+        if (wishlist.length === 0) {
+            wishlistInitialMessage.textContent = 'Your wishlist is empty. Add some products from the Products page!';
+            wishlistInitialMessage.style.display = 'block';
+            clearWishlistButton.style.display = 'none'; // No items, no clear button
+            wishlistItemsContainer.appendChild(wishlistInitialMessage); // Re-add the specific message
+        } else {
+            wishlistInitialMessage.style.display = 'none'; // Hide the message if items exist
+            clearWishlistButton.style.display = 'block'; // Show clear button if items exist
+
+            wishlist.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'card wishlist-card'; // Add a specific class
+                productCard.innerHTML = `
+                    <img src="${product.imageUrl || 'https://via.placeholder.com/100x100?text=Product'}" alt="${product.name}">
+                    <h4>${product.name}</h4>
+                    <p>${product.brand || 'N/A'} – $${product.price ? product.price.toFixed(2) : 'N/A'}</p>
+                    <a href="${product.amazonUrl}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${product.name} on Amazon">Buy on Amazon</a>
+                    <button class="remove-from-wishlist-btn" data-product-id="${product.id}" aria-label="Remove ${product.name} from wishlist">Remove</button>
+                `;
+                wishlistItemsContainer.appendChild(productCard);
+            });
+        }
+    } catch (error) {
+        console.error("Error in loadWishlist:", error);
+        wishlistItemsContainer.innerHTML = '<p class="no-items-message">Error loading your wishlist.</p>';
+        clearWishlistButton.style.display = 'none';
+        showNotification("Error loading wishlist: " + error.message, "error", 5000);
+    }
+}
+
+// ADDED: loadProfile function
+async function loadProfile() {
+    const profileEmailSpan = document.getElementById('profileEmail');
+    const displayNameInput = document.getElementById('displayNameInput');
+
+    if (!profileEmailSpan || !displayNameInput) {
+        console.warn("Profile elements not found for loading.");
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+        profileEmailSpan.textContent = user.email;
+        displayNameInput.value = user.displayName || ''; // Populate display name input
+    } else {
+        profileEmailSpan.textContent = 'Not logged in';
+        displayNameInput.value = '';
+    }
+}
+
+
+function checkPasswordStrength(password) {
+    let score = 0;
+    if (password.length > 5) score++;
+    if (password.length > 7) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score < 3) return 'weak';
+    if (score < 5) return 'medium';
+    return 'strong';
+}
+
+function updatePasswordStrengthIndicator(strength) {
+    if (document.getElementById('passwordStrength')) {
+        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
+    }
+}
