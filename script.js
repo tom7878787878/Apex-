@@ -1,6 +1,3 @@
-// ADDED FOR DEBUGGING: This alert will tell us if the script is being loaded and executed at all.
-alert('Apex Auto Parts Script Loaded!');
-
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
@@ -21,7 +18,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app); // Note: analytics variable is declared but not used in the provided code.
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -55,18 +52,16 @@ let makeInput;
 let modelInput;
 let yearInput;
 let savedVehiclesContainer;
-let noVehiclesMessage; // ADDED/MODIFIED: This now directly references the P tag in HTML
+let noVehiclesMessage;
 
 // --- Wishlist Elements (assigned in DOMContentLoaded) ---
 let featuredProductsGrid;
 let wishlistItemsContainer;
 let clearWishlistButton;
-// ADDED/MODIFIED: Renamed for clarity, it's the initial message *within* the wishlistItemsContainer
 let wishlistInitialMessage;
 
 // --- Profile Elements (assigned in DOMContentLoaded) ---
 let profileEmailSpan;
-// let updateProfileBtn; // This was for a placeholder, now using updateProfileForm
 let changePasswordBtn;
 let updateProfileForm;
 let displayNameInput;
@@ -75,10 +70,10 @@ let saveProfileBtn;
 // --- Contact Form Elements (assigned in DOMContentLoaded) ---
 let contactForm;
 
-// NEW Global variable for selected vehicle
+// Global variable for selected vehicle
 let selectedVehicleForSearch = null;
 
-// ADDED: Firestore field name constants for consistency
+// Firebase Firestore constants
 const FIRESTORE_VEHICLES_FIELD = 'vehicles';
 const FIRESTORE_WISHLIST_FIELD = 'wishlist';
 const MAX_VEHICLES = 3;
@@ -100,7 +95,7 @@ window.showPage = function(id) {
         navLinks.classList.remove('active');
     }
 
-    // ADDED/MODIFIED: Explicitly call load functions when their respective page is shown
+    // Call load functions explicitly when page is shown
     if (id === 'products') {
         loadVehicleForProducts();
     } else if (id === 'garage') {
@@ -202,12 +197,7 @@ function setButtonLoading(button, isLoading) {
 
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
-    // ADDED FOR DEBUGGING: Alert to check if auth state change is being processed
-    alert('Auth State Changed! User: ' + (user ? user.email : 'None'));
     console.log("Auth state changed. User:", user ? user.email : "none");
-    // ADDED/MODIFIED: Ensure userEmailSpan is available before trying to update it.
-    // The DOMContentLoaded listener handles the initial assignment.
-    // This `if` block prevents errors if onAuthStateChanged fires before DOM is ready.
     if (!userEmailSpan) {
         document.addEventListener('DOMContentLoaded', () => {
             const emailSpan = document.getElementById("userEmail");
@@ -222,41 +212,34 @@ function updateAuthStateUI(user, emailSpanElement) {
     if (user) {
         emailSpanElement.textContent = `Logged in as: ${user.email}`;
 
-        // ADDED/MODIFIED: Ensure these functions are called to update UI when auth state changes to logged in
+        // Ensure we fetch data only if the respective page is active or being loaded
         renderSavedVehicles();
         loadWishlist();
         loadProfile();
 
-        // ADDED/MODIFIED: Only show login success if user was *just* logged in, not on page refresh
-        // The individual auth handlers should show success. This state change is for UI updates.
-        // showNotification(`Welcome, ${user.displayName || user.email}!`, 'success', 2000); // Removed from here
-
         if (document.querySelector('.page.active')?.id === 'auth') {
-            showPage('home'); // Redirect if currently on the auth page
+            showPage('home');
         }
         clearAuthFields();
 
     } else {
         emailSpanElement.textContent = "";
-        // ADDED/MODIFIED: Redirect to auth page if user logs out from a protected page
         if (document.querySelector(".page.active")?.id === "garage" ||
             document.querySelector(".page.active")?.id === "wishlist" ||
             document.querySelector(".page.active")?.id === "profile") {
             showPage("auth");
         }
         clearAuthFields();
-        // ADDED/MODIFIED: Clear UI sections when logging out
-        renderSavedVehicles(); // Clears vehicles from UI
-        loadWishlist(); // Clears wishlist from UI
-        loadProfile(); // Clears profile info
-        // showNotification("Logged out.", 'info', 2000); // Removed from here
+        // Clear or reset data on logout
+        renderSavedVehicles();
+        loadWishlist();
+        loadProfile();
+        showNotification("Logged out.", 'info', 2000); // Re-added this notification here
     }
 }
 
 // --- DOMContentLoaded: Assign elements and attach all listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    // ADDED FOR DEBUGGING: Alert to check if DOMContentLoaded fired
-    alert('DOMContentLoaded Fired!');
     console.log("DOMContentLoaded fired. Assigning DOM elements and attaching listeners.");
 
     // Assign Global DOM Elements
@@ -278,11 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleRegPassBtn = document.getElementById('toggleRegPass');
     forgotPasswordLink = document.querySelector('.forgot-password-link');
 
-    // ADDED/MODIFIED: Create and insert password strength indicator here, ensuring regPassInput exists
+    // Create and insert password strength indicator here
     passwordStrengthIndicator = document.createElement('div');
     passwordStrengthIndicator.id = 'passwordStrength';
     passwordStrengthIndicator.className = 'password-strength';
-    if (regPassInput) { // Check if regPassInput is found before trying to insert
+    if (regPassInput) {
         regPassInput.parentNode.insertBefore(passwordStrengthIndicator, regPassInput.nextSibling);
     }
 
@@ -292,19 +275,16 @@ document.addEventListener('DOMContentLoaded', () => {
     modelInput = document.getElementById("model");
     yearInput = document.getElementById("year");
     savedVehiclesContainer = document.getElementById('savedVehicles');
-    // ADDED/MODIFIED: Ensure noVehiclesMessage targets the specific P tag by ID
     noVehiclesMessage = document.getElementById('noVehiclesMessage');
 
     // Assign Wishlist Elements
     featuredProductsGrid = document.getElementById('featuredProductsGrid');
     wishlistItemsContainer = document.getElementById('wishlistItems');
     clearWishlistButton = document.getElementById('clearWishlistBtn');
-    // ADDED/MODIFIED: Targets the initial message within the wishlistItemsContainer
     wishlistInitialMessage = document.querySelector('#wishlistItems .no-items-message');
 
     // Assign Profile Elements
     profileEmailSpan = document.getElementById('profileEmail');
-    // updateProfileBtn was removed from HTML based on previous discussion, no need to assign here
     changePasswordBtn = document.getElementById('changePasswordBtn');
     updateProfileForm = document.getElementById('updateProfileForm');
     displayNameInput = document.getElementById('displayNameInput');
@@ -360,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await signInWithEmailAndPassword(auth, loginEmailInput.value, loginPassInput.value);
-                // ADDED/MODIFIED: Notification moved here as this is the direct result of user action
                 showNotification("Login successful!", "success");
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
@@ -413,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await createUserWithEmailAndPassword(auth, regEmailInput.value, regPassInput.value);
-                // ADDED/MODIFIED: Notification moved here as this is the direct result of user action
                 showNotification("Registered successfully!", "success");
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
@@ -436,7 +414,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Password Strength Indicator (for Registration Form)
-        // ADDED/MODIFIED: Check for passwordStrengthIndicator's existence here
         if (regPassInput && passwordStrengthIndicator) {
             regPassInput.addEventListener('input', () => {
                 const password = regPassInput.value;
@@ -456,7 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
-                // ADDED/MODIFIED: Notification moved here
                 showNotification("Google login successful!", "success");
             } catch (err) {
                 if (err.code === 'auth/popup-closed-by-user') {
@@ -480,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await signOut(auth);
-                // ADDED/MODIFIED: Notification moved here
                 showNotification("Logged out successfully!", "info");
             } catch (err) {
                 showNotification("Logout error: " + err.message, "error", 5000);
@@ -500,7 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!email) {
                 displayFormError('loginEmailError', 'Please enter your email to reset password.');
                 showNotification('Please enter your email for password reset.', 'error');
-                // ADDED/MODIFIED: Don't set loading state if input is invalid
                 return;
             }
 
@@ -610,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newVehicle = { make, model, year };
                 console.log("Attempting to save new vehicle:", newVehicle);
 
-                // ADDED: Prevent adding duplicate vehicles for better UX
+                // Prevent adding duplicate vehicles for better UX
                 const isDuplicate = vehicles.some(v => v.make === newVehicle.make && v.model === newVehicle.model && v.year === newVehicle.year);
                 if (isDuplicate) {
                     showNotification(`Vehicle "${year} ${make} ${model}" is already in your garage.`, "info");
@@ -620,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
 
-                if (!userDocSnap.exists()) { // ADDED/MODIFIED: Simplified logic for setDoc
+                if (!userDocSnap.exists()) {
                     console.log("Creating new document with initial vehicle.");
                     await setDoc(userDocRef, {
                         [FIRESTORE_VEHICLES_FIELD]: [newVehicle],
@@ -636,8 +610,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, "success");
                 garageForm.reset();
-                renderSavedVehicles(); // ADDED/MODIFIED: Re-render after successful save
-                loadVehicleForProducts(); // ADDED/MODIFIED: Update products page vehicle selection
+                renderSavedVehicles();
+                loadVehicleForProducts();
                 console.log("Vehicle save process completed successfully.");
             } catch (err) {
                 console.error("Unhandled error during garage form submission:", err);
@@ -679,7 +653,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (clearWishlistButton) {
         clearWishlistButton.addEventListener('click', async () => {
-            // ADDED/MODIFIED: Confirmation before clearing
             if (confirm("Are you sure you want to clear your entire wishlist? This cannot be undone.")) {
                 await clearWishlist(clearWishlistButton);
             }
@@ -688,7 +661,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Profile Page Functionality
-    // ADDED/MODIFIED: Event listener for the updateProfileForm
     if (updateProfileForm && displayNameInput && saveProfileBtn) {
         updateProfileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -717,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayName: newDisplayName
                 });
                 showNotification("Profile updated successfully!", "success");
-                loadProfile(); // Re-load profile to show updated display name immediately
+                loadProfile();
             } catch (error) {
                 console.error("Error updating profile:", error);
                 showNotification(`Failed to update profile: ${error.message}`, "error");
@@ -731,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
         changePasswordBtn.addEventListener('click', async () => {
             const user = auth.currentUser;
             if (user) {
-                showNotification("Sending password reset email...", "info"); // ADDED/MODIFIED: More direct notification
+                showNotification("Sending password reset email...", "info");
                 try {
                     await sendPasswordResetEmail(auth, user.email);
                     showNotification(`Password change email sent to ${user.email}. Please check your inbox.`, "success", 7000);
@@ -812,13 +784,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- Helper Functions (defined outside DOMContentLoaded so they are globally accessible) ---
-// ADDED/MODIFIED: These constants were already defined globally, just moved them here for consistency.
-// const FIRESTORE_VEHICLES_FIELD = 'vehicles'; // Already defined above, removed duplicate
-// const MAX_VEHICLES = 3; // Already defined above, removed duplicate
-
 function getUserGarageDocRef() {
     if (!auth.currentUser) {
-        // ADDED/MODIFIED: Removed generic notification here, calling functions will handle specific messages
         return null;
     }
     return doc(db, "garages", auth.currentUser.uid);
@@ -826,7 +793,7 @@ function getUserGarageDocRef() {
 
 async function getSavedVehiclesFromFirestore() {
     const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) { // ADDED/MODIFIED: Explicit check here. getUserGarageDocRef already shows notification
+    if (!userDocRef) {
         console.log("getSavedVehiclesFromFirestore: Not logged in, returning empty array.");
         return [];
     }
@@ -840,13 +807,12 @@ async function getSavedVehiclesFromFirestore() {
         return [];
     } catch (error) {
         console.error("Error getting vehicles from Firestore:", error);
-        showNotification("Error loading saved vehicles.", "error"); // Keep notification here
+        showNotification("Error loading saved vehicles.", "error");
         return [];
     }
 }
 
 async function renderSavedVehicles() {
-    // ADDED/MODIFIED: Re-fetching elements to ensure they are current in case DOM was manipulated
     const savedVehiclesContainer = document.getElementById('savedVehicles');
     const noVehiclesMessage = document.getElementById('noVehiclesMessage');
 
@@ -855,31 +821,28 @@ async function renderSavedVehicles() {
         return;
     }
 
-    // ADDED/MODIFIED: Clear previous content and show loading state
     savedVehiclesContainer.innerHTML = '';
     noVehiclesMessage.textContent = 'Loading your vehicles...';
     noVehiclesMessage.style.display = 'block';
 
 
     if (!auth.currentUser) {
-        noVehiclesMessage.textContent = 'Please log in to save your vehicles.'; // Update message for logged out state
-        return; // Exit if not logged in
+        noVehiclesMessage.textContent = 'Please log in to save your vehicles.';
+        return;
     }
 
     try {
         const vehicles = await getSavedVehiclesFromFirestore();
-        savedVehiclesContainer.innerHTML = ''; // Clear loading message now that data is fetched
+        savedVehiclesContainer.innerHTML = '';
 
         if (vehicles.length === 0) {
-            noVehiclesMessage.textContent = 'No vehicles saved yet. Add one above!'; // Restore default empty message
+            noVehiclesMessage.textContent = 'No vehicles saved yet. Add one above!';
             noVehiclesMessage.style.display = 'block';
         } else {
-            noVehiclesMessage.style.display = 'none'; // Hide the message if vehicles exist
+            noVehiclesMessage.style.display = 'none';
             vehicles.forEach((vehicle, index) => {
                 const vehicleCard = document.createElement('div');
                 vehicleCard.className = 'vehicle-card';
-                // ADDED/MODIFIED: Pass the full vehicle object data to the button to ensure exact match for arrayRemove
-                // Using dataset for all properties needed for removal
                 vehicleCard.innerHTML = `
                     <div class="vehicle-info">
                         <h4>${vehicle.year} ${vehicle.make} ${vehicle.model}</h4>
@@ -896,10 +859,9 @@ async function renderSavedVehicles() {
                 savedVehiclesContainer.appendChild(vehicleCard);
             });
 
-            // ADDED/MODIFIED: Attach listeners after all cards are added
             document.querySelectorAll('#savedVehicles .delete-vehicle-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
-                    const vehicleToDelete = { // Reconstruct the exact object to remove
+                    const vehicleToDelete = {
                         make: e.target.dataset.make,
                         model: e.target.dataset.model,
                         year: parseInt(e.target.dataset.year)
@@ -916,23 +878,21 @@ async function renderSavedVehicles() {
     }
 }
 
-// ADDED/MODIFIED: Modified deleteVehicle to use arrayRemove based on the actual vehicle object
 async function deleteVehicle(vehicleToDelete, button) {
     const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) { // getUserGarageDocRef already shows notification
+    if (!userDocRef) {
         return;
     }
 
     setButtonLoading(button, true);
 
     try {
-        // Use arrayRemove with the exact object to remove it from the Firestore array
         await updateDoc(userDocRef, {
             [FIRESTORE_VEHICLES_FIELD]: arrayRemove(vehicleToDelete)
         });
         showNotification(`Vehicle "${vehicleToDelete.year} ${vehicleToDelete.make} ${vehicleToDelete.model}" deleted.`, 'info');
-        renderSavedVehicles(); // Re-render after successful delete
-        loadVehicleForProducts(); // Update products page vehicle selection
+        renderSavedVehicles();
+        loadVehicleForProducts();
     } catch (error) {
         console.error("Error deleting vehicle:", error);
         showNotification("Error deleting vehicle: " + error.message, "error");
@@ -945,7 +905,6 @@ async function loadVehicleForProducts() {
     const productContentDiv = document.getElementById('productContent');
     if (!productContentDiv) return;
 
-    // ADDED/MODIFIED: Clear and show loading state
     productContentDiv.innerHTML = '<p class="no-items-message">Loading vehicle search options...</p>';
 
 
@@ -956,7 +915,7 @@ async function loadVehicleForProducts() {
                 <p>To get personalized part searches, please <a href="#" onclick="showPage('auth')">log in</a> or go to <a href="#" onclick="showPage('garage')">My Garage</a> to save your vehicle details.</p>
             </div>
         `;
-        selectedVehicleForSearch = null; // Reset selected vehicle if user logs out or is not logged in
+        selectedVehicleForSearch = null;
         return;
     }
 
@@ -964,10 +923,8 @@ async function loadVehicleForProducts() {
         const vehicles = await getSavedVehiclesFromFirestore();
 
         if (vehicles.length > 0) {
-            // Set the initially selected vehicle (either the first one, or the previously selected one)
-            // ADDED/MODIFIED: More robust check to ensure selectedVehicleForSearch is actually in the *current* vehicles list
             if (!selectedVehicleForSearch || !vehicles.some(v => v.make === selectedVehicleForSearch.make && v.model === selectedVehicleForSearch.model && v.year === selectedVehicleForSearch.year)) {
-                selectedVehicleForSearch = vehicles[0]; // Default to the first vehicle if none selected or old one removed
+                selectedVehicleForSearch = vehicles[0];
             }
 
             let vehicleOptionsHtml = vehicles.map((v, i) => `
@@ -1019,7 +976,6 @@ async function loadVehicleForProducts() {
                     const selectedIndex = parseInt(event.target.value);
                     selectedVehicleForSearch = vehicles[selectedIndex];
                     currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
-                    // ADDED/MODIFIED: Re-call loadVehicleForProducts to regenerate the category buttons with the new vehicle's data
                     loadVehicleForProducts();
                 });
             }
@@ -1027,17 +983,15 @@ async function loadVehicleForProducts() {
             const generalSearchInput = document.getElementById('generalProductSearch');
             const generalSearchButton = document.getElementById('generalSearchButton');
 
-            if (generalSearchInput && generalSearchButton) { // ADDED/MODIFIED: Check both elements exist
+            if (generalSearchInput && generalSearchButton) {
                 generalSearchInput.addEventListener('keypress', (event) => {
                     if (event.key === 'Enter') {
                         event.preventDefault();
-                        // setButtonLoading is not strictly needed here since it's an external link
                         searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
                     }
                 });
 
                 generalSearchButton.addEventListener('click', () => {
-                    // setButtonLoading not strictly needed here
                     searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
                 });
             }
@@ -1050,245 +1004,4 @@ async function loadVehicleForProducts() {
                     <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
                 </div>
             `;
-             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
-        }
-    } catch (err) {
-        console.error("Error loading vehicle for products page:", err);
-        productContentDiv.innerHTML = `
-            <div class="no-vehicle-message">
-                <h3>Error Loading Vehicle</h3>
-                <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
-            </div>
-        `;
-        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
-    }
-}
-
-window.searchAmazonSpecific = function(year, make, model, partType) {
-    const query = `${partType} ${year} ${make} ${model}`;
-    const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
-    window.open(url, "_blank");
-}
-
-window.searchAmazonGeneral = function(year, make, model) {
-    const searchInput = document.getElementById('generalProductSearch');
-    let query = searchInput.value.trim();
-
-    if (query) {
-        query = `${query} ${year} ${make} ${model}`;
-        const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
-        window.open(url, "_blank");
-        searchInput.value = '';
-    } else {
-        showNotification("Please enter a search term.", "info");
-    }
-}
-
-async function addToWishlist(product) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
-        // ADDED/MODIFIED: Show notification if not logged in
-        showNotification("Please log in to add items to your wishlist.", "error");
-        return;
-    }
-
-    try {
-        const currentWishlist = await getWishlistFromFirestore();
-        const exists = currentWishlist.some(item => item.id === product.id);
-
-        if (!exists) {
-            await updateDoc(userDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: arrayUnion(product) // ADDED/MODIFIED: Use constant
-            });
-            showNotification(`${product.name} added to wishlist!`, "success");
-            // ADDED/MODIFIED: Only load wishlist if currently on wishlist page
-            if (document.querySelector('.page.active')?.id === 'wishlist') {
-                loadWishlist();
-            }
-        } else {
-            showNotification(`${product.name} is already in your wishlist.`, "info");
-        }
-    } catch (error) {
-        console.error("Error adding to wishlist:", error);
-        showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
-    }
-}
-
-async function removeFromWishlist(productId, button) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
-        // ADDED/MODIFIED: Show notification if not logged in
-        showNotification("Please log in to manage your wishlist.", "error");
-        return;
-    }
-
-    setButtonLoading(button, true);
-
-    try {
-        const currentWishlist = await getWishlistFromFirestore();
-        // ADDED/MODIFIED: Find the exact item object to remove using arrayRemove.
-        // `arrayRemove` requires an exact match of the object in the array.
-        const itemToRemove = currentWishlist.find(item => item.id === productId);
-
-        if (itemToRemove) {
-            await updateDoc(userDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove) // ADDED/MODIFIED: Use constant
-            });
-            showNotification("Product removed from wishlist.", "info");
-            loadWishlist(); // ADDED/MODIFIED: Re-render after removal
-        } else {
-            showNotification("Product not found in wishlist (it might have been removed already).", "info");
-        }
-    } catch (error) {
-        console.error("Error removing from wishlist:", error);
-        showNotification("Failed to remove product from wishlist: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-async function clearWishlist(button) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
-        // ADDED/MODIFIED: Show notification if not logged in
-        showNotification("Please log in to clear your wishlist.", "error");
-        return;
-    }
-
-    setButtonLoading(button, true);
-
-    try {
-        await updateDoc(userDocRef, {
-            [FIRESTORE_WISHLIST_FIELD]: [] // ADDED/MODIFIED: Use constant to set the wishlist array to empty
-        });
-        showNotification("Wishlist cleared!", "info");
-        loadWishlist(); // ADDED/MODIFIED: Re-render after clearing
-    } catch (error) {
-        console.error("Error clearing wishlist:", error);
-        showNotification("Failed to clear wishlist: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-async function getWishlistFromFirestore() {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) { // ADDED/MODIFIED: Explicit check here. getUserGarageDocRef already shows notification
-        console.log("getWishlistFromFirestore: Not logged in, returning empty array.");
-        return [];
-    }
-
-    try {
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            return data[FIRESTORE_WISHLIST_FIELD] || []; // ADDED/MODIFIED: Use constant
-        }
-        return [];
-    } catch (error) {
-        console.error("Error getting wishlist from Firestore:", error);
-        showNotification("Error loading wishlist.", "error"); // Keep notification here
-        return [];
-    }
-}
-
-// ADDED/MODIFIED: Completed loadWishlist function
-async function loadWishlist() {
-    // ADDED/MODIFIED: Re-fetching elements to ensure they are current in case DOM was manipulated
-    const wishlistItemsContainer = document.getElementById('wishlistItems');
-    const clearWishlistButton = document.getElementById('clearWishlistBtn');
-    const wishlistInitialMessage = document.querySelector('#wishlistItems .no-items-message');
-
-    if (!wishlistItemsContainer || !wishlistInitialMessage || !clearWishlistButton) {
-        console.warn("Wishlist display elements not found for rendering.");
-        return;
-    }
-
-    // Clear previous content and show loading state
-    wishlistItemsContainer.innerHTML = '';
-    wishlistInitialMessage.textContent = 'Loading your wishlist...';
-    wishlistInitialMessage.style.display = 'block'; // Ensure the loading message is visible
-    clearWishlistButton.style.display = 'none'; // Hide clear button during loading
-
-    if (!auth.currentUser) {
-        wishlistInitialMessage.textContent = 'Please log in to see your wishlist, or add some products from the Products page!';
-        // Ensure only the message is shown if logged out
-        wishlistItemsContainer.appendChild(wishlistInitialMessage);
-        return;
-    }
-
-    try {
-        const wishlist = await getWishlistFromFirestore();
-        wishlistItemsContainer.innerHTML = ''; // Clear loading message now that data is fetched
-
-        if (wishlist.length === 0) {
-            wishlistInitialMessage.textContent = 'Your wishlist is empty. Add some products from the Products page!';
-            wishlistInitialMessage.style.display = 'block';
-            clearWishlistButton.style.display = 'none'; // No items, no clear button
-            wishlistItemsContainer.appendChild(wishlistInitialMessage); // Re-add the specific message
-        } else {
-            wishlistInitialMessage.style.display = 'none'; // Hide the message if items exist
-            clearWishlistButton.style.display = 'block'; // Show clear button if items exist
-
-            wishlist.forEach(product => {
-                const productCard = document.createElement('div');
-                productCard.className = 'card wishlist-card'; // Add a specific class
-                productCard.innerHTML = `
-                    <img src="${product.imageUrl || 'https://via.placeholder.com/100x100?text=Product'}" alt="${product.name}">
-                    <h4>${product.name}</h4>
-                    <p>${product.brand || 'N/A'} – $${product.price ? product.price.toFixed(2) : 'N/A'}</p>
-                    <a href="${product.amazonUrl}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${product.name} on Amazon">Buy on Amazon</a>
-                    <button class="remove-from-wishlist-btn" data-product-id="${product.id}" aria-label="Remove ${product.name} from wishlist">Remove</button>
-                `;
-                wishlistItemsContainer.appendChild(productCard);
-            });
-        }
-    } catch (error) {
-        console.error("Error in loadWishlist:", error);
-        wishlistItemsContainer.innerHTML = '<p class="no-items-message">Error loading your wishlist.</p>';
-        clearWishlistButton.style.display = 'none';
-        showNotification("Error loading wishlist: " + error.message, "error", 5000);
-    }
-}
-
-// ADDED: loadProfile function
-async function loadProfile() {
-    const profileEmailSpan = document.getElementById('profileEmail');
-    const displayNameInput = document.getElementById('displayNameInput');
-
-    if (!profileEmailSpan || !displayNameInput) {
-        console.warn("Profile elements not found for loading.");
-        return;
-    }
-
-    const user = auth.currentUser;
-    if (user) {
-        profileEmailSpan.textContent = user.email;
-        displayNameInput.value = user.displayName || ''; // Populate display name input
-    } else {
-        profileEmailSpan.textContent = 'Not logged in';
-        displayNameInput.value = '';
-    }
-}
-
-
-function checkPasswordStrength(password) {
-    let score = 0;
-    if (password.length > 5) score++;
-    if (password.length > 7) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-
-    if (score < 3) return 'weak';
-    if (score < 5) return 'medium';
-    return 'strong';
-}
-
-function updatePasswordStrengthIndicator(strength) {
-    if (document.getElementById('passwordStrength')) {
-        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
-        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
-    }
-}
+             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5
