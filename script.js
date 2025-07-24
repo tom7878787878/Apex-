@@ -1,3 +1,6 @@
+// TOP OF SCRIPT - Confirms script file itself is loading and starting execution
+alert('Script started execution!');
+
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
@@ -95,7 +98,6 @@ window.showPage = function(id) {
         navLinks.classList.remove('active');
     }
 
-    // Call load functions explicitly when page is shown
     if (id === 'products') {
         loadVehicleForProducts();
     } else if (id === 'garage') {
@@ -197,6 +199,8 @@ function setButtonLoading(button, isLoading) {
 
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
+    // ADDED FOR DEBUGGING: Checks if onAuthStateChanged is firing
+    alert('Auth State Listener: User is ' + (user ? user.email : 'None'));
     console.log("Auth state changed. User:", user ? user.email : "none");
     if (!userEmailSpan) {
         document.addEventListener('DOMContentLoaded', () => {
@@ -212,7 +216,6 @@ function updateAuthStateUI(user, emailSpanElement) {
     if (user) {
         emailSpanElement.textContent = `Logged in as: ${user.email}`;
 
-        // Ensure we fetch data only if the respective page is active or being loaded
         renderSavedVehicles();
         loadWishlist();
         loadProfile();
@@ -230,16 +233,17 @@ function updateAuthStateUI(user, emailSpanElement) {
             showPage("auth");
         }
         clearAuthFields();
-        // Clear or reset data on logout
         renderSavedVehicles();
         loadWishlist();
         loadProfile();
-        showNotification("Logged out.", 'info', 2000); // Re-added this notification here
+        showNotification("Logged out.", 'info', 2000);
     }
 }
 
 // --- DOMContentLoaded: Assign elements and attach all listeners ---
 document.addEventListener('DOMContentLoaded', () => {
+    // ADDED FOR DEBUGGING: Checks if DOMContentLoaded is firing and where execution might stop
+    alert('DOMContentLoaded started!');
     console.log("DOMContentLoaded fired. Assigning DOM elements and attaching listeners.");
 
     // Assign Global DOM Elements
@@ -292,6 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Contact Form Elements
     contactForm = document.getElementById('contactForm');
+
+    // ADDED FOR DEBUGGING: Checks if all DOM elements have been assigned
+    alert('All DOM elements assigned. Attaching listeners next.');
 
 
     // --- Attach Event Listeners (only if elements exist) ---
@@ -528,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- My Garage Section (Firebase) ---
     if (garageForm && makeInput && modelInput && yearInput && savedVehiclesContainer && noVehiclesMessage) {
         garageForm.addEventListener('submit', async (e) => {
-            console.log("Garage form submit handler triggered.");
+            console.log("Garage form submitted.");
             e.preventDefault();
             const submitBtn = e.submitter;
 
@@ -1004,4 +1011,234 @@ async function loadVehicleForProducts() {
                     <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
                 </div>
             `;
-             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5
+             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
+        }
+    } catch (err) {
+        console.error("Error loading vehicle for products page:", err);
+        productContentDiv.innerHTML = `
+            <div class="no-vehicle-message">
+                <h3>Error Loading Vehicle</h3>
+                <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
+            </div>
+        `;
+        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
+    }
+}
+
+window.searchAmazonSpecific = function(year, make, model, partType) {
+    const query = `${partType} ${year} ${make} ${model}`;
+    const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+    window.open(url, "_blank");
+}
+
+window.searchAmazonGeneral = function(year, make, model) {
+    const searchInput = document.getElementById('generalProductSearch');
+    let query = searchInput.value.trim();
+
+    if (query) {
+        query = `${query} ${year} ${make} ${model}`;
+        const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+        window.open(url, "_blank");
+        searchInput.value = '';
+    } else {
+        showNotification("Please enter a search term.", "info");
+    }
+}
+
+async function addToWishlist(product) {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) {
+        showNotification("Please log in to add items to your wishlist.", "error");
+        return;
+    }
+
+    try {
+        const currentWishlist = await getWishlistFromFirestore();
+        const exists = currentWishlist.some(item => item.id === product.id);
+
+        if (!exists) {
+            await updateDoc(userDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: arrayUnion(product)
+            });
+            showNotification(`${product.name} added to wishlist!`, "success");
+            if (document.querySelector('.page.active')?.id === 'wishlist') {
+                loadWishlist();
+            }
+        } else {
+            showNotification(`${product.name} is already in your wishlist.`, "info");
+        }
+    } catch (error) {
+        console.error("Error adding to wishlist:", error);
+        showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
+    }
+}
+
+async function removeFromWishlist(productId, button) {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) {
+        showNotification("Please log in to manage your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        const currentWishlist = await getWishlistFromFirestore();
+        const itemToRemove = currentWishlist.find(item => item.id === productId);
+
+        if (itemToRemove) {
+            await updateDoc(userDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove)
+            });
+            showNotification("Product removed from wishlist.", "info");
+            loadWishlist();
+        } else {
+            showNotification("Product not found in wishlist (already removed?).", "info");
+        }
+    } catch (error) {
+        console.error("Error removing from wishlist:", error);
+        showNotification("Failed to remove product from wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function clearWishlist(button) {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) {
+        showNotification("Please log in to clear your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        await updateDoc(userDocRef, {
+            [FIRESTORE_WISHLIST_FIELD]: []
+        });
+        showNotification("Wishlist cleared!", "info");
+        loadWishlist();
+    } catch (error) {
+        console.error("Error clearing wishlist:", error);
+        showNotification("Failed to clear wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function getWishlistFromFirestore() {
+    const userDocRef = getUserGarageDocRef();
+    if (!userDocRef) {
+        console.log("getWishlistFromFirestore: Not logged in, returning empty array.");
+        return [];
+    }
+
+    try {
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            return data[FIRESTORE_WISHLIST_FIELD] || [];
+        }
+        return [];
+    } catch (error) {
+        console.error("Error getting wishlist from Firestore:", error);
+        showNotification("Error loading wishlist.", "error");
+        return [];
+    }
+}
+
+async function loadWishlist() {
+    const wishlistItemsContainer = document.getElementById('wishlistItems');
+    const clearWishlistButton = document.getElementById('clearWishlistBtn');
+    const wishlistInitialMessage = document.querySelector('#wishlistItems .no-items-message');
+
+    if (!wishlistItemsContainer || !wishlistInitialMessage || !clearWishlistButton) {
+        console.warn("Wishlist display elements not found for rendering.");
+        return;
+    }
+
+    wishlistItemsContainer.innerHTML = '';
+    wishlistInitialMessage.textContent = 'Loading your wishlist...';
+    wishlistInitialMessage.style.display = 'block';
+    clearWishlistButton.style.display = 'none';
+
+    if (!auth.currentUser) {
+        wishlistInitialMessage.textContent = 'Please log in to see your wishlist, or add some products from the Products page!';
+        wishlistItemsContainer.appendChild(wishlistInitialMessage);
+        return;
+    }
+
+    try {
+        const wishlist = await getWishlistFromFirestore();
+        wishlistItemsContainer.innerHTML = '';
+
+        if (wishlist.length === 0) {
+            wishlistInitialMessage.textContent = 'Your wishlist is empty. Add some products from the Products page!';
+            wishlistInitialMessage.style.display = 'block';
+            clearWishlistButton.style.display = 'none';
+            wishlistItemsContainer.appendChild(wishlistInitialMessage);
+        } else {
+            wishlistInitialMessage.style.display = 'none';
+            clearWishlistButton.style.display = 'block';
+
+            wishlist.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'card wishlist-card';
+                productCard.innerHTML = `
+                    <img src="${product.imageUrl || 'https://via.placeholder.com/100x100?text=Product'}" alt="${product.name}">
+                    <h4>${product.name}</h4>
+                    <p>${product.brand || 'N/A'} – $${product.price ? product.price.toFixed(2) : 'N/A'}</p>
+                    <a href="${product.amazonUrl}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${product.name} on Amazon">Buy on Amazon</a>
+                    <button class="remove-from-wishlist-btn" data-product-id="${product.id}" aria-label="Remove ${product.name} from wishlist">Remove</button>
+                `;
+                wishlistItemsContainer.appendChild(productCard);
+            });
+        }
+    } catch (error) {
+        console.error("Error in loadWishlist:", error);
+        wishlistItemsContainer.innerHTML = '<p class="no-items-message">Error loading your wishlist.</p>';
+        clearWishlistButton.style.display = 'none';
+        showNotification("Error loading wishlist: " + error.message, "error", 5000);
+    }
+}
+
+async function loadProfile() {
+    const profileEmailSpan = document.getElementById('profileEmail');
+    const displayNameInput = document.getElementById('displayNameInput');
+
+    if (!profileEmailSpan || !displayNameInput) {
+        console.warn("Profile elements not found for loading.");
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+        profileEmailSpan.textContent = user.email;
+        displayNameInput.value = user.displayName || '';
+    } else {
+        profileEmailSpan.textContent = 'Not logged in';
+        displayNameInput.value = '';
+    }
+}
+
+
+function checkPasswordStrength(password) {
+    let score = 0;
+    if (password.length > 5) score++;
+    if (password.length > 7) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score < 3) return 'weak';
+    if (score < 5) return 'medium';
+    return 'strong';
+}
+
+function updatePasswordStrengthIndicator(strength) {
+    if (document.getElementById('passwordStrength')) {
+        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
+    }
+}
