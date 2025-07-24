@@ -1,6 +1,3 @@
-// TOP OF SCRIPT - Confirms script file itself is loading and starting execution
-alert('Script started execution!');
-
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
@@ -199,8 +196,6 @@ function setButtonLoading(button, isLoading) {
 
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
-    // ADDED FOR DEBUGGING: Checks if onAuthStateChanged is firing
-    alert('Auth State Listener: User is ' + (user ? user.email : 'None'));
     console.log("Auth state changed. User:", user ? user.email : "none");
     if (!userEmailSpan) {
         document.addEventListener('DOMContentLoaded', () => {
@@ -242,8 +237,6 @@ function updateAuthStateUI(user, emailSpanElement) {
 
 // --- DOMContentLoaded: Assign elements and attach all listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    // ADDED FOR DEBUGGING: Checks if DOMContentLoaded is firing and where execution might stop
-    alert('DOMContentLoaded started!');
     console.log("DOMContentLoaded fired. Assigning DOM elements and attaching listeners.");
 
     // Assign Global DOM Elements
@@ -296,10 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Contact Form Elements
     contactForm = document.getElementById('contactForm');
-
-    // ADDED FOR DEBUGGING: Checks if all DOM elements have been assigned
-    alert('All DOM elements assigned. Attaching listeners next.');
-
 
     // --- Attach Event Listeners (only if elements exist) ---
 
@@ -728,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Contact Form
     if (contactForm) {
         contactForm.addEventListener('submit', async function(e) {
-            console.log("Contact form submit handler triggered.");
+            console.log("Contact form submitted.");
             e.preventDefault();
             const submitBtn = e.submitter;
 
