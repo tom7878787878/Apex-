@@ -4,237 +4,737 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Apex Auto Parts</title>
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="style.css"> 
-</head>
-<body>
-  <div id="notificationContainer" class="notification-container" aria-live="polite">
-    </div>
-  <header>
-    <nav class="container" role="navigation" aria-label="Main Navigation">
-      <div class="logo">🚗 APEX AUTO PARTS</div>
-      <ul class="nav-links" id="navLinks">
-        <li><a href="#" onclick="showPage('auth')">Login / Register</a></li>
-        <li><a href="#" onclick="showPage('home')">Home</a></li>
-        <li><a href="#" onclick="showPage('products')">Products</a></li>
-        <li><a href="#" onclick="showPage('garage')">My Garage</a></li>
-        <li><a href="#" onclick="showPage('wishlist')">My Wishlist</a></li>
-        <li><a href="#" onclick="showPage('profile')">My Profile</a></li> <li><a href="#" onclick="showPage('contact')">Contact</a></li>
-      </ul>
-      <span id="userEmail" aria-live="polite"></span>
-      <div class="hamburger-menu" id="hamburgerMenu" role="button" aria-controls="navLinks" aria-expanded="false" tabindex="0">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-    </nav>
-  </header>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <main role="main">
-    <section id="home" class="page active">
-      <div class="hero">
-        <h1>Apex Auto Parts</h1>
-        <p>Your Trusted Auto Parts Supplier</p>
-        <button onclick="showPage('products')">Shop Now</button>
-      </div>
-    </section>
+  <style>
+    /* Global Reset for Box Sizing */
+    html {
+        box-sizing: border-box;
+    }
+    *, *::before, *::after {
+        box-sizing: inherit;
+    }
 
-    <section id="products" class="page">
-      <div class="container">
-        <h2>Find Parts for Your Vehicle</h2>
-        
-        <div id="productContent" class="product-options">
-            </div>
+    /* --- CSS Variables (Color Palette) --- */
+    :root {
+        /* Primary brand colors */
+        --primary-dark: #212529; /* A slightly softer dark */
+        --primary-light: #f8f9fa; /* A very light, subtle background */
 
-        <h3>General Featured Products</h3>
-        <div class="grid" id="featuredProductsGrid"> 
-          <div class="card" 
-               data-product-id="oil-filter-acdelco"
-               data-product-name="Oil Filter" 
-               data-product-price="12.99" 
-               data-amazon-url="https://amzn.to/4f7A3tG" 
-               data-image-url="https://via.placeholder.com/100x100?text=Oil+Filter">
-            <img src="https://via.placeholder.com/100x100?text=Oil+Filter" alt="ACDelco Oil Filter">
-            <h4>Oil Filter</h4>
-            <p>ACDelco – $12.99</p>
-            <a href="https://amzn.to/4f7A3tG" target="_blank" rel="noopener noreferrer" aria-label="Buy ACDelco Oil Filter on Amazon">Buy on Amazon</a>
-            <button class="add-to-wishlist-btn">Add to Wishlist</button>
-          </div>
-          <div class="card" 
-               data-product-id="brake-pads-wagner"
-               data-product-name="Brake Pads" 
-               data-product-price="89.99" 
-               data-amazon-url="https://amzn.to/3GSGPGS" 
-               data-image-url="https://via.placeholder.com/100x100?text=Brake+Pads">
-            <img src="https://via.placeholder.com/100x100?text=Brake+Pads" alt="Wagner Brake Pads">
-            <h4>Brake Pads</h4>
-            <p>Wagner – $89.99</p>
-            <a href="https://amzn.to/3GSGPGS" target="_blank" rel="noopener noreferrer" aria-label="Buy Wagner Brake Pads on Amazon">Buy on Amazon</a>
-            <button class="add-to-wishlist-btn">Add to Wishlist</button>
-          </div>
-          <div class="card" 
-               data-product-id="spark-plugs-ngk"
-               data-product-name="Spark Plugs" 
-               data-product-price="7.50" 
-               data-amazon-url="https://amzn.to/4lXf1A0" 
-               data-image-url="https://via.placeholder.com/100x100?text=Spark+Plugs">
-            <img src="https://via.placeholder.com/100x100?text=Spark+Plugs" alt="NGK Spark Plugs">
-            <h4>Spark Plugs</h4>
-            <p>NGK – $7.50 each</p>
-            <a href="https://amzn.to/4lXf1A0" target="_blank" rel="noopener noreferrer" aria-label="Buy NGK Spark Plugs on Amazon">Buy on Amazon</a>
-            <button class="add-to-wishlist-btn">Add to Wishlist</button>
-          </div>
-          <div class="card" 
-               data-product-id="wiper-blades-bosch"
-               data-product-name="Wiper Blades" 
-               data-product-price="25.00" 
-               data-amazon-url="https://amzn.to/4lBWnOf" data-image-url="https://via.placeholder.com/100x100?text=Wiper+Blades">
-            <img src="https://via.placeholder.com/100x100?text=Wiper+Blades" alt="Bosch Icon Wiper Blades">
-            <h4>Wiper Blades</h4>
-            <p>Bosch Icon – $25.00</p>
-            <a href="https://amzn.to/4lBWnOf" target="_blank" rel="noopener noreferrer" aria-label="Buy Bosch Icon Wiper Blades on Amazon">Buy on Amazon</a> <button class="add-to-wishlist-btn">Add to Wishlist</button>
-          </div>
-        </div>
-      </div>
-    </section>
+        /* Accent colors */
+        --accent-red: #e74c3c; /* Consistent accent red */
+        --accent-blue: #3498db; /* A modern blue for general actions/links */
+        --accent-green: #2ecc71; /* A modern green for success/buy */
+        --accent-orange: #f39c12; /* A modern orange for wishlist/warnings */
 
-    <section id="garage" class="page">
-      <div class="container">
-        <h2>My Garage</h2>
-        <form id="garageForm">
-          <h3>Add a New Vehicle (Max 3)</h3>
-          <label for="make">Make</label>
-          <input type="text" id="make" placeholder="Make" required aria-describedby="makeError"/>
-          <span id="makeError" class="error-message" aria-live="polite"></span>
+        /* Text colors */
+        --text-dark: #343a40; /* Slightly softer dark text */
+        --text-medium: #6c757d; /* For secondary text/paragraphs */
+        --text-light: #f8f9fa; /* For text on dark backgrounds */
 
-          <label for="model">Model</label>
-          <input type="text" id="model" placeholder="Model" required aria-describedby="modelError"/>
-          <span id="modelError" class="error-message" aria-live="polite"></span>
+        /* Border & Shadow */
+        --border-color: #dee2e6;
+        --shadow-light: rgba(0,0,0,0.08);
+        --shadow-medium: rgba(0,0,0,0.15);
+        --shadow-strong: rgba(0,0,0,0.25);
+    }
 
-          <label for="year">Year</label>
-          <input type="number" id="year" placeholder="Year" min="1900" max="2100" required aria-describedby="yearError"/> 
-          <span id="yearError" class="error-message" aria-live="polite"></span>
+    /* --- Global Styles --- */
+    body {
+      font-family: 'Inter', sans-serif; /* Using Inter for a modern look */
+      margin: 0;
+      background-color: var(--primary-light);
+      color: var(--text-dark);
+      line-height: 1.7; /* Slightly more line height for better readability */
+      font-size: 1.05rem; /* A touch larger base font size */
+    }
 
-          <button type="submit">Save Vehicle</button>
-        </form>
-        
-        <h3>My Saved Vehicles</h3>
-        <div id="savedVehicles" class="grid">
-          <p id="noVehiclesMessage" class="no-items-message">No vehicles saved yet. Add one above!</p>
-          </div>
-      </div>
-    </section>
+    /* --- Navigation Bar --- */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem; /* More horizontal padding */
+      background: var(--primary-dark);
+      color: var(--text-light);
+      box-shadow: 0 4px 12px var(--shadow-medium); /* More prominent, modern shadow */
+      position: relative;
+      z-index: 1000;
+    }
+    .logo {
+      font-size: 1.6rem; /* Slightly larger logo */
+      font-weight: 700; /* Bolder */
+      color: var(--text-light); /* Ensure logo color is light */
+      text-decoration: none; /* Remove underline if it's a link */
+    }
+    .nav-links {
+      list-style: none;
+      display: flex;
+      gap: 1.8rem; /* More space between links */
+      margin: 0;
+      padding: 0;
+    }
+    .nav-links li a {
+      color: var(--text-light);
+      text-decoration: none;
+      padding: 0.5rem 0;
+      transition: color 0.3s ease;
+      font-weight: 500; /* Medium weight for links */
+    }
+    .nav-links li a:hover, .nav-links li a:focus {
+      color: var(--accent-red);
+    }
+    #userEmail {
+        color: var(--text-medium); /* Lighter color for sub-info */
+        font-size: 0.85rem;
+        margin-left: 1.2rem;
+    }
 
-    <section id="wishlist" class="page">
-        <div class="container">
-            <h2>My Wishlist</h2>
-            <div id="wishlistItems" class="grid" aria-live="polite">
-                <p class="no-items-message">Please log in to see your wishlist, or add some products from the Products page!</p>
-            </div>
-            <button id="clearWishlistBtn" style="margin-top: 2rem;">Clear Wishlist</button>
-        </div>
-    </section>
+    /* --- Hamburger Menu (Mobile Navigation) --- */
+    .hamburger-menu {
+      display: none;
+      flex-direction: column;
+      justify-content: space-around;
+      width: 30px;
+      height: 25px;
+      cursor: pointer;
+      z-index: 1001;
+      padding: 5px;
+    }
+    .hamburger-menu span {
+      display: block;
+      width: 100%;
+      height: 3px;
+      background-color: var(--text-light); /* Use variable for color */
+      border-radius: 2px;
+      transition: all 0.3s ease-in-out;
+    }
+    .hamburger-menu span:not(:last-child) {
+        margin-bottom: 4px;
+    }
 
-    <section id="profile" class="page">
-        <div class="container">
-            <h2>My Profile</h2>
-            <div class="profile-info-card">
-                <h3>Account Information</h3>
-                <p><strong>Email:</strong> <span id="profileEmail">Not logged in</span></p>
+    /* --- Mobile Navigation Specifics --- */
+    @media (max-width: 768px) {
+      nav {
+          padding: 1rem 1.5rem; /* Adjust padding for smaller screens */
+      }
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: var(--primary-dark);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        padding: 1rem 0;
+        text-align: center;
+        z-index: 999;
+      }
+      .nav-links.active {
+        display: flex;
+      }
+      .nav-links li {
+        margin: 0.5rem 0;
+      }
+      .nav-links li a {
+        padding: 0.8rem 0;
+        display: block;
+      }
+      .hamburger-menu {
+        display: flex;
+      }
+      #userEmail {
+          display: none; /* Hide user email on very small screens */
+      }
+    }
 
-                <form id="updateProfileForm" style="margin-top: 2rem;">
-                    <h4>Update Basic Info</h4>
-                    <label for="displayNameInput">Display Name</label>
-                    <input type="text" id="displayNameInput" placeholder="Your Display Name" aria-describedby="displayNameError"/>
-                    <span id="displayNameError" class="error-message" aria-live="polite"></span>
-                    <button type="submit" id="saveProfileBtn">Save Profile</button>
-                </form>
+    /* --- General Layout and Animation --- */
+    .container {
+      padding: 2.5rem; /* More padding */
+      max-width: 1100px; /* Slightly wider max-width */
+      margin: 0 auto;
+    }
+    .page {
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .page.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); } /* More pronounced fade-in */
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .card {
+      background: var(--text-light);
+      padding: 2rem; /* More padding inside cards */
+      margin: 1.5rem 0;
+      border-radius: 10px; /* Slightly more rounded */
+      box-shadow: 0 6px 20px var(--shadow-light); /* Softer, broader shadow */
+      border: none; /* Remove subtle border, let shadow define it */
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Smooth hover */
+    }
+    .card:hover {
+        transform: translateY(-5px); /* Lift card on hover */
+        box-shadow: 0 10px 30px var(--shadow-medium); /* More prominent shadow on hover */
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem; /* More space between grid items */
+      margin-top: 2rem;
+    }
+    .grid .card {
+      margin: 0; /* Override margin from .card for grid items */
+      text-align: center;
+    }
+    .card h4 {
+        margin-top: 0;
+        color: var(--primary-dark); /* Make card titles darker for stronger hierarchy */
+        font-size: 1.3rem; /* Slightly larger card titles */
+        margin-bottom: 0.75rem;
+    }
+    .card p {
+        font-size: 1rem;
+        color: var(--text-medium);
+    }
+    .card a { /* Buy button */
+        display: inline-block;
+        margin-top: 1.2rem;
+        padding: 0.8rem 1.6rem; /* Slightly more padding */
+        background-color: var(--accent-green);
+        color: var(--text-light);
+        text-decoration: none;
+        border-radius: 6px; /* Slightly more rounded */
+        transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        font-weight: 600; /* Bolder */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Subtle shadow */
+    }
+    .card a:hover {
+        background-color: #27ae60; /* Slightly darker green */
+        transform: translateY(-2px); /* Lift */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
 
-                <button id="changePasswordBtn" style="margin-top: 2rem;">Change Password</button>
-            </div>
-        </div>
-    </section>
+    /* NEW: Product image styling within cards */
+    .card img {
+        max-width: 140px; /* Slightly larger image */
+        height: auto;
+        display: block;
+        margin: 0 auto 1.5rem auto; /* More margin below */
+        border-radius: 8px; /* More rounded images */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* Subtle image shadow */
+    }
 
-    <section id="contact" class="page">
-      <div class="container">
-        <h2>Contact Us</h2>
-        <form id="contactForm" action="https://formspree.io/f/xrblewkn" method="POST">
-          <h3>Send us a message!</h3>
-          <label for="contactName">Name</label>
-          <input type="text" id="contactName" name="name" placeholder="Your Name" required aria-describedby="contactNameError"/>
-          <span id="contactNameError" class="error-message" aria-live="polite"></span>
+    /* --- Hero section styles --- */
+    .hero {
+      background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://source.unsplash.com/random/1600x600/?truck,suspension,road') center/cover no-repeat; /* Better placeholder image */
+      color: var(--text-light);
+      padding: 160px 20px; /* More vertical padding */
+      text-align: center;
+      border-radius: 12px; /* Slightly more rounded corners */
+      margin-bottom: 3rem; /* More space below hero */
+      box-shadow: 0 10px 30px var(--shadow-strong); /* Stronger shadow */
+    }
+    .hero h1 {
+      font-size: 4.5rem; /* Larger hero heading */
+      font-weight: 800; /* Extra bold */
+      margin-bottom: 1rem;
+      text-shadow: 0 5px 10px rgba(0,0,0,0.6); /* More defined shadow */
+    }
+    .hero p {
+      font-size: 1.8rem;
+      margin-bottom: 3rem;
+      font-weight: 400; /* Regular weight */
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero button {
+      background: var(--accent-red);
+      color: var(--text-light);
+      border: none;
+      padding: 1.2rem 3rem; /* Larger padding */
+      font-size: 1.4rem; /* Larger text */
+      cursor: pointer;
+      border-radius: 9999px; /* Pill shape */
+      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 6px 15px rgba(231,76,60,0.4); /* Shadow matching button color */
+    }
+    .hero button:hover {
+      background: #c0392b; /* Slightly darker red */
+      transform: translateY(-3px); /* More pronounced lift */
+      box-shadow: 0 8px 20px rgba(231,76,60,0.5);
+    }
 
-          <label for="contactEmail">Email</label>
-          <input type="email" id="contactEmail" name="email" placeholder="Your Email" required aria-describedby="contactEmailError"/>
-          <span id="contactEmailError" class="error-message" aria-live="polite"></span>
+    /* Mobile specific Hero adjustments */
+    @media (max-width: 600px) {
+      .hero {
+        padding: 100px 15px; /* Reduce padding */
+      }
+      .hero h1 {
+        font-size: 3rem; /* Smaller font size */
+      }
+      .hero p {
+        font-size: 1.4rem; /* Smaller font size */
+      }
+    }
 
-          <label for="contactMessage">Message</label>
-          <textarea id="contactMessage" name="message" placeholder="Your Message" required aria-describedby="contactMessageError"></textarea>
-          <span id="contactMessageError" class="error-message" aria-live="polite"></span>
+    /* --- Form styles --- */
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem; /* More space between form elements */
+        background: var(--text-light);
+        padding: 3rem; /* More padding */
+        border-radius: 10px;
+        box-shadow: 0 6px 20px var(--shadow-light);
+        margin-top: 2rem;
+    }
+    form h3 {
+        text-align: center;
+        color: var(--primary-dark); /* Form titles more consistent with main text */
+        margin-bottom: 2rem; /* More space below title */
+        font-size: 2rem; /* Larger title */
+        font-weight: 700;
+    }
+    form label {
+        font-weight: 600;
+        color: var(--text-dark);
+        display: block;
+        margin-bottom: 0.5rem; /* More space */
+    }
+    form input[type="text"],
+    form input[type="email"],
+    form input[type="password"],
+    form input[type="number"],
+    form textarea {
+        padding: 1rem; /* More padding */
+        border: 1px solid var(--border-color);
+        border-radius: 6px; /* Slightly more rounded */
+        font-size: 1.05rem; /* Larger font */
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        box-sizing: border-box;
+    }
+    form input[type="text"]:focus,
+    form input[type="email"]:focus,
+    form input[type="password"]:focus,
+    form input[type="number"]:focus,
+    form textarea:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25); /* Stronger blue glow */
+    }
+    form textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+    form button {
+        background: var(--accent-blue);
+        color: var(--text-light);
+        border: none;
+        padding: 1rem 2rem; /* More padding */
+        font-size: 1.1rem; /* Larger font */
+        border-radius: 6px; /* Slightly more rounded */
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        outline: none;
+        font-weight: 600; /* Bolder */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Subtle shadow on buttons */
+    }
+    form button:hover {
+        background: #2980b9; /* Darker blue */
+        transform: translateY(-2px); /* More lift */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* More prominent shadow on hover */
+    }
+    form button:focus {
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25); /* Focus style for buttons */
+    }
+    /* Loading state for buttons */
+    form button.is-loading {
+        background-color: var(--text-medium); /* Greyed out */
+        cursor: not-allowed;
+        transform: translateY(0); /* No lift when loading */
+        box-shadow: none;
+    }
 
-          <button type="submit">Send Message</button>
-        </form>
-      </div>
-    </section>
+    #auth form + form {
+        margin-top: 2.5rem;
+    }
+    #auth #googleLoginBtn {
+        background: #dd4b39; /* Keep Google red */
+        box-shadow: 0 2px 8px rgba(221, 75, 57, 0.2);
+    }
+    #auth #googleLoginBtn:hover {
+        background: #c23321;
+        box-shadow: 0 4px 12px rgba(221, 75, 57, 0.3);
+    }
+    #auth #logoutBtn {
+        background: var(--accent-red); /* Use consistent accent red */
+        box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
+    }
+    #auth #logoutBtn:hover {
+        background: #c0392b;
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    }
 
-    <section id="auth" class="page">
-      <div class="container">
-        <h2>Login / Register</h2>
-        <form id="loginForm">
-          <h3>Login</h3>
-          <label for="loginEmail">Email</label>
-          <input type="email" id="loginEmail" placeholder="Email" required aria-describedby="loginEmailError"/>
-          <span id="loginEmailError" class="error-message" aria-live="polite"></span>
+    /* --- Password visibility toggle --- */
+    .password-input-container {
+        position: relative;
+        width: 100%;
+    }
+    .password-input-container input {
+        padding-right: 45px; /* Make more space for the button */
+    }
+    .password-input-container button {
+        position: absolute;
+        right: 8px; /* Slightly more space from edge */
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1rem; /* Slightly smaller icon */
+        color: var(--text-medium);
+        padding: 8px; /* More padding for easier clicking */
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        width: auto; /* Override form button width */
+        box-shadow: none; /* No shadow for toggle button */
+    }
+    .password-input-container button:hover {
+        background-color: var(--primary-light); /* Use light background for hover */
+        transform: translateY(-50%); /* Prevent lift on hover */
+    }
 
-          <label for="loginPass">Password</label>
-          <div class="password-input-container">
-            <input type="password" id="loginPass" placeholder="Password" required aria-describedby="loginPassError"/>
-            <button type="button" id="toggleLoginPass" aria-label="Show password">👁️</button>
-          </div>
-          <span id="loginPassError" class="error-message" aria-live="polite"></span>
-          <a href="#" class="forgot-password-link">Forgot Password?</a>
-          <button type="submit">Login</button>
-        </form>
-        <form id="registerForm">
-          <h3>Register</h3>
-          <label for="regEmail">Email</label>
-          <input type="email" id="regEmail" placeholder="Email" required aria-describedby="regEmailError"/>
-          <span id="regEmailError" class="error-message" aria-live="polite"></span>
+    .forgot-password-link {
+        display: block;
+        text-align: right;
+        margin-top: -0.75rem; /* Adjust spacing */
+        margin-bottom: 1.25rem;
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    .forgot-password-link:hover {
+        text-decoration: underline;
+    }
 
-          <label for="regPass">Password</label>
-          <div class="password-input-container">
-            <input type="password" id="regPass" placeholder="Password" required aria-describedby="regPassError"/>
-            <button type="button" id="toggleRegPass" aria-label="Show password">👁️</button>
-          </div>
-          <span id="regPassError" class="error-message" aria-live="polite"></span>
-          <button type="submit">Register</button>
-        </form>
-        <button id="googleLoginBtn" onclick="googleLogin()">Login with Google</button>
-        <button id="logoutBtn" onclick="logout()">Logout</button>
-      </div>
-    </section>
-  </main>
+    /* --- Password Strength Indicator --- */
+    .password-strength {
+        font-size: 0.85rem;
+        margin-top: -0.75rem; /* Adjust spacing */
+        margin-bottom: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+    }
+    .password-strength.weak {
+        color: var(--accent-red);
+    }
+    .password-strength.medium {
+        color: var(--accent-orange);
+    }
+    .password-strength.strong {
+        color: var(--accent-green);
+    }
 
-  <footer>
-    <div class="container">
-      <p>&copy; <span id="currentYear"></span> Apex Auto Parts. All rights reserved.</p>
-      <ul class="footer-links">
-        <li><a href="#">Privacy Policy</a></li>
-        <li><a href="#">Terms of Service</a></li>
-        <li><a href="#">Sitemap</a></li>
-      </ul>
-      <div class="social-media">
-        <a href="#" aria-label="Facebook"><img src="path/to/facebook-icon.png" alt="Facebook"></a>
-        <a href="#" aria-label="Instagram"><img src="path/to/instagram-icon.png" alt="Instagram"></a>
-        <a href="#" aria-label="Twitter"><img src="path/to/twitter-icon.png" alt="Twitter"></a>
-      </div>
-    </div>
-  </footer>
+    /* --- Garage Section Display --- */
+    #savedVehicles {
+        margin-top: 2.5rem;
+        border-top: 1px solid var(--border-color); /* Use variable */
+        padding-top: 2rem; /* More padding */
+    }
+    .vehicle-card {
+        background-color: var(--text-light);
+        border: none; /* Remove subtle border, use shadow */
+        border-radius: 8px;
+        padding: 1.5rem; /* More padding */
+        display: flex;
+        gap: 1.5rem; /* More space */
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 4px 10px var(--shadow-light); /* Softer shadow */
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .vehicle-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px var(--shadow-medium);
+    }
+    .vehicle-info {
+        flex-grow: 1;
+    }
+    .vehicle-info h4 {
+        margin: 0 0 0.6rem 0;
+        text-align: left;
+        color: var(--primary-dark); /* Stronger vehicle name color */
+        font-size: 1.2rem; /* Slightly larger */
+        font-weight: 600;
+    }
+    .vehicle-info p {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--text-medium);
+    }
+    .delete-vehicle-btn {
+        background-color: var(--accent-red);
+        color: var(--text-light);
+        border: none;
+        border-radius: 6px;
+        padding: 0.6rem 1.2rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+        font-weight: 500;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .delete-vehicle-btn:hover {
+        background-color: #c0392b;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
 
-  <script type="module" src="script.js"></script>
-</body>
-</html>
+    /* --- Product Search/Display Section --- */
+    #products .product-options {
+        margin-top: 2rem;
+        background: var(--text-light);
+        padding: 3rem;
+        border-radius: 10px;
+        box-shadow: 0 6px 20px var(--shadow-light);
+    }
+    #products .product-options h3 {
+        text-align: center;
+        color: var(--primary-dark); /* Consistent with form headers */
+        margin-top: 0;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    #products .product-options .vehicle-info {
+        text-align: center;
+        font-size: 1.3rem; /* Stronger vehicle info font size */
+        font-weight: bold;
+        margin-bottom: 2rem;
+        color: var(--primary-dark); /* Stronger vehicle info color */
+    }
+
+    /* New Search input and button styling */
+    #products .general-search-section {
+        margin-top: 2rem;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        gap: 0;
+        max-width: 500px; /* Limit search bar width */
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #products .general-search-section input[type="text"] {
+        flex-grow: 1;
+        max-width: calc(100% - 120px); /* Adjust max-width based on button size */
+        padding: 0.9rem;
+        border: 1px solid var(--border-color);
+        border-right: none;
+        border-radius: 6px 0 0 6px;
+        font-size: 1rem;
+        vertical-align: middle;
+        box-sizing: border-box;
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    #products .general-search-section input[type="text"]:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
+    }
+    #products .general-search-section button {
+        padding: 0.9rem 1.8rem; /* More padding for button */
+        background-color: var(--accent-blue);
+        color: var(--text-light);
+        border: none;
+        border-radius: 0 6px 6px 0;
+        font-size: 1rem;
+        cursor: pointer;
+        vertical-align: middle;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        outline: none;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    #products .general-search-section button:hover {
+        background-color: #2980b9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    #products .general-search-section button:focus {
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
+    }
+
+    #products .category-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Slightly smaller min-width for more columns */
+        gap: 1.5rem; /* More space */
+        margin-top: 2.5rem;
+    }
+    #products .category-buttons button {
+        background: var(--accent-blue); /* Use consistent blue for category buttons */
+        color: var(--text-light);
+        border: none;
+        padding: 1rem;
+        font-size: 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    #products .category-buttons button:hover {
+        background: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    #products .no-vehicle-message {
+        text-align: center;
+        padding: 2.5rem;
+        font-style: italic;
+        color: var(--text-medium);
+    }
+    #products .no-vehicle-message a {
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-weight: bold;
+    }
+    #products .no-vehicle-message a:hover {
+        text-decoration: underline;
+    }
+
+    /* --- Select Vehicle Dropdown Styling --- */
+    .select-vehicle-container {
+        text-align: center;
+        margin-bottom: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.8rem; /* More space */
+    }
+    .select-vehicle-container label {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--text-dark);
+    }
+    .select-vehicle-container select {
+        padding: 0.8rem 1.2rem; /* More padding */
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 1rem;
+        max-width: 350px; /* Limit width */
+        width: 100%;
+        background-color: var(--text-light);
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .select-vehicle-container select:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
+    }
+
+    /* --- Accessibility - Visually hidden class --- */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+
+    /* --- Notification Styles --- */
+    .notification-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px; /* More space between notifications */
+        max-width: 320px; /* Slightly wider */
+    }
+    .notification-item {
+        background-color: var(--primary-dark);
+        color: var(--text-light);
+        padding: 18px 25px; /* More padding */
+        border-radius: 8px; /* Slightly more rounded */
+        box-shadow: 0 6px 15px var(--shadow-medium); /* Stronger shadow */
+        opacity: 0;
+        transform: translateX(100%);
+        animation: slideIn 0.5s forwards;
+        font-size: 1rem; /* Slightly larger text */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 500;
+    }
+    .notification-item .notification-message {
+        margin-right: 15px; /* More space */
+    }
+    .notification-item .notification-close {
+        background: none;
+        border: none;
+        color: inherit;
+        font-size: 1.6rem; /* Slightly larger icon */
+        cursor: pointer;
+        line-height: 1;
+        padding: 0 8px;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+    .notification-item .notification-close:hover {
+        opacity: 1;
+    }
+
+    .notification-success {
+        background-color: var(--accent-green);
+    }
+    .notification-error {
+        background-color: var(--accent-red);
+    }
+    .notification-info {
+        background-color: var(--accent-blue);
+    }
+
+    @keyframes slideIn {
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Responsive adjustments for notifications */
+    @media (max-width: 600px) {
+        .notification-container {
+            top: 15px;
+            right: 15px;
+            left: 15px;
+            max-width: none;
+        }
+        .notification-item {
+            padding: 15px 20px;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* --- Wishlist specific styles --- */
+    #wishlist .no-items-message {
+        text-align: center;
+        padding: 2.5rem;
+        font-style: italic;
+        color: var(--text-medium);
+    }
+    #wishlist .card .remove-from-wishlist-

@@ -1,92 +1,129 @@
-/* Global Styles */
-body { 
-  font-family: 'Open Sans', sans-serif; /* Using Open Sans from Google Fonts */
-  margin: 0; 
-  background-color: #f4f4f4;
-  color: #333;
-  line-height: 1.6;
+/* Global Reset for Box Sizing */
+html {
+    box-sizing: border-box;
+}
+*, *::before, *::after {
+    box-sizing: inherit;
 }
 
-/* Navigation Bar */
-nav { 
-  display: flex; 
-  justify-content: space-between; 
+/* --- CSS Variables (Color Palette) --- */
+:root {
+    /* Primary brand colors */
+    --primary-dark: #212529; /* A slightly softer dark */
+    --primary-light: #f8f9fa; /* A very light, subtle background */
+
+    /* Accent colors */
+    --accent-red: #e74c3c; /* Consistent accent red */
+    --accent-blue: #3498db; /* A modern blue for general actions/links */
+    --accent-green: #2ecc71; /* A modern green for success/buy */
+    --accent-orange: #f39c12; /* A modern orange for wishlist/warnings */
+
+    /* Text colors */
+    --text-dark: #343a40; /* Slightly softer dark text */
+    --text-medium: #6c757d; /* For secondary text/paragraphs */
+    --text-light: #f8f9fa; /* For text on dark backgrounds */
+
+    /* Border & Shadow */
+    --border-color: #dee2e6;
+    --shadow-light: rgba(0,0,0,0.08);
+    --shadow-medium: rgba(0,0,0,0.15);
+    --shadow-strong: rgba(0,0,0,0.25);
+}
+
+/* --- Global Styles --- */
+body {
+  font-family: 'Inter', sans-serif; /* Using Inter for a modern look */
+  margin: 0;
+  background-color: var(--primary-light);
+  color: var(--text-dark);
+  line-height: 1.7; /* Slightly more line height for better readability */
+  font-size: 1.05rem; /* A touch larger base font size */
+}
+
+/* --- Navigation Bar --- */
+nav {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 1rem; 
-  background: #111; 
-  color: #fff; 
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  position: relative; /* Needed for absolute positioning of mobile menu */
-  z-index: 1000; /* Ensure nav is on top */
+  padding: 1rem 2rem; /* More horizontal padding */
+  background: var(--primary-dark);
+  color: var(--text-light);
+  box-shadow: 0 4px 12px var(--shadow-medium); /* More prominent, modern shadow */
+  position: relative;
+  z-index: 1000;
 }
 .logo {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 1.6rem; /* Slightly larger logo */
+  font-weight: 700; /* Bolder */
+  color: var(--text-light); /* Ensure logo color is light */
+  text-decoration: none; /* Remove underline if it's a link */
 }
-.nav-links { 
-  list-style: none; 
-  display: flex; 
-  gap: 1.5rem; 
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 1.8rem; /* More space between links */
   margin: 0;
   padding: 0;
 }
-.nav-links li a { 
-  color: white; 
-  text-decoration: none; 
+.nav-links li a {
+  color: var(--text-light);
+  text-decoration: none;
   padding: 0.5rem 0;
   transition: color 0.3s ease;
+  font-weight: 500; /* Medium weight for links */
 }
 .nav-links li a:hover, .nav-links li a:focus {
-  color: #e53935; /* Red accent color */
+  color: var(--accent-red);
 }
 #userEmail {
-    color: #ddd;
-    font-size: 0.9rem;
-    margin-left: 1rem;
+    color: var(--text-medium); /* Lighter color for sub-info */
+    font-size: 0.85rem;
+    margin-left: 1.2rem;
 }
 
-/* Hamburger Menu (Mobile Navigation) */
+/* --- Hamburger Menu (Mobile Navigation) --- */
 .hamburger-menu {
-  display: none; /* Hidden by default for desktop */
+  display: none;
   flex-direction: column;
   justify-content: space-around;
   width: 30px;
   height: 25px;
-  cursor: pointer; /* Indicate it's clickable */
-  z-index: 1001; /* Ensure hamburger is on top of menu when expanded */
-  padding: 5px; /* Add some padding for easier clicking */
+  cursor: pointer;
+  z-index: 1001;
+  padding: 5px;
 }
 .hamburger-menu span {
   display: block;
   width: 100%;
   height: 3px;
-  background-color: white;
+  background-color: var(--text-light); /* Use variable for color */
   border-radius: 2px;
   transition: all 0.3s ease-in-out;
 }
-/* Add slight margin between bars */
 .hamburger-menu span:not(:last-child) {
-    margin-bottom: 4px; 
+    margin-bottom: 4px;
 }
 
-
-/* Mobile Navigation Specifics */
+/* --- Mobile Navigation Specifics --- */
 @media (max-width: 768px) {
+  nav {
+      padding: 1rem 1.5rem; /* Adjust padding for smaller screens */
+  }
   .nav-links {
-    display: none; /* Hide nav links by default on small screens */
+    display: none;
     flex-direction: column;
     position: absolute;
-    top: 100%; /* Position below the nav bar */
+    top: 100%;
     left: 0;
     width: 100%;
-    background: #111;
+    background: var(--primary-dark);
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     padding: 1rem 0;
     text-align: center;
-    z-index: 999; /* Ensure menu is below hamburger but above content */
+    z-index: 999;
   }
   .nav-links.active {
-    display: flex; /* Show nav links when active */
+    display: flex;
   }
   .nav-links li {
     margin: 0.5rem 0;
@@ -96,436 +133,468 @@ nav {
     display: block;
   }
   .hamburger-menu {
-    display: flex; /* Show hamburger menu */
+    display: flex;
   }
   #userEmail {
-      /* You can choose to hide or reposition user email on very small screens */
-      display: none; 
+      display: none; /* Hide user email on very small screens */
   }
 }
 
-/* General Layout and Animation */
-.container { 
-  padding: 2rem; 
-  max-width: 960px;
+/* --- General Layout and Animation --- */
+.container {
+  padding: 2.5rem; /* More padding */
+  max-width: 1100px; /* Slightly wider max-width */
   margin: 0 auto;
 }
-.page { 
-  display: none; 
+.page {
+  display: none;
   animation: fadeIn 0.5s ease-in-out;
 }
-.page.active { 
-  display: block; 
+.page.active {
+  display: block;
 }
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(15px); } /* More pronounced fade-in */
     to { opacity: 1; transform: translateY(0); }
 }
-.card { 
-  background: #fff; 
-  padding: 1.5rem; 
-  margin: 1rem 0; 
-  border-radius: 8px; 
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  border: 1px solid #eee;
+.card {
+  background: var(--text-light);
+  padding: 2rem; /* More padding inside cards */
+  margin: 1.5rem 0;
+  border-radius: 10px; /* Slightly more rounded */
+  box-shadow: 0 6px 20px var(--shadow-light); /* Softer, broader shadow */
+  border: none; /* Remove subtle border, let shadow define it */
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Smooth hover */
 }
-.grid { 
-  display: grid; 
+.card:hover {
+    transform: translateY(-5px); /* Lift card on hover */
+    box-shadow: 0 10px 30px var(--shadow-medium); /* More prominent shadow on hover */
+}
+.grid {
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem; 
-  margin-top: 1.5rem;
+  gap: 2rem; /* More space between grid items */
+  margin-top: 2rem;
 }
-.grid .card { 
-  margin: 0;
-  text-align: center; /* Center content in cards, especially new images/buttons */
+.grid .card {
+  margin: 0; /* Override margin from .card for grid items */
+  text-align: center;
 }
 .card h4 {
     margin-top: 0;
-    color: #e53935; /* Red accent color */
+    color: var(--primary-dark); /* Make card titles darker for stronger hierarchy */
+    font-size: 1.3rem; /* Slightly larger card titles */
+    margin-bottom: 0.75rem;
 }
 .card p {
-    font-size: 0.95rem;
-    color: #555;
+    font-size: 1rem;
+    color: var(--text-medium);
 }
-.card a {
+.card a { /* Buy button */
     display: inline-block;
-    margin-top: 1rem;
-    padding: 0.6rem 1.2rem;
-    background-color: #4CAF50; /* Green buy button */
-    color: white;
+    margin-top: 1.2rem;
+    padding: 0.8rem 1.6rem; /* Slightly more padding */
+    background-color: var(--accent-green);
+    color: var(--text-light);
     text-decoration: none;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
+    border-radius: 6px; /* Slightly more rounded */
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    font-weight: 600; /* Bolder */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Subtle shadow */
 }
 .card a:hover {
-    background-color: #45a049;
+    background-color: #27ae60; /* Slightly darker green */
+    transform: translateY(-2px); /* Lift */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 /* NEW: Product image styling within cards */
 .card img {
-    max-width: 100px; /* Adjust as needed */
+    max-width: 140px; /* Slightly larger image */
     height: auto;
-    display: block; /* Ensures it takes up full width for centering */
-    margin: 0 auto 1rem auto; /* Center image and add margin below */
-    border-radius: 4px; /* Slight rounded corners for images */
+    display: block;
+    margin: 0 auto 1.5rem auto; /* More margin below */
+    border-radius: 8px; /* More rounded images */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* Subtle image shadow */
 }
 
-
-/* Hero section styles */
+/* --- Hero section styles --- */
 .hero {
-  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://image.pollinations.ai/prompt/powerful%20truck%20air%20suspension%20highway') center/cover no-repeat; /* Placeholder image */
-  color: white;
-  padding: 120px 20px;
+  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://source.unsplash.com/random/1600x600/?truck,suspension,road') center/cover no-repeat; /* Better placeholder image */
+  color: var(--text-light);
+  padding: 160px 20px; /* More vertical padding */
   text-align: center;
-  border-radius: 8px;
-  margin-bottom: 2rem;
+  border-radius: 12px; /* Slightly more rounded corners */
+  margin-bottom: 3rem; /* More space below hero */
+  box-shadow: 0 10px 30px var(--shadow-strong); /* Stronger shadow */
 }
 .hero h1 {
-  font-size: 3.5rem;
-  margin-bottom: 0.8rem;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 4.5rem; /* Larger hero heading */
+  font-weight: 800; /* Extra bold */
+  margin-bottom: 1rem;
+  text-shadow: 0 5px 10px rgba(0,0,0,0.6); /* More defined shadow */
 }
 .hero p {
   font-size: 1.8rem;
-  margin-bottom: 2rem;
-  font-weight: 300;
+  margin-bottom: 3rem;
+  font-weight: 400; /* Regular weight */
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .hero button {
-  background: #e53935; /* Red accent color */
-  color: #fff;
+  background: var(--accent-red);
+  color: var(--text-light);
   border: none;
-  padding: 1rem 2.5rem;
-  font-size: 1.2rem;
+  padding: 1.2rem 3rem; /* Larger padding */
+  font-size: 1.4rem; /* Larger text */
   cursor: pointer;
-  border-radius: 50px; 
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  border-radius: 9999px; /* Pill shape */
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 6px 15px rgba(231,76,60,0.4); /* Shadow matching button color */
 }
 .hero button:hover {
-  background: #c62828;
-  transform: translateY(-2px);
+  background: #c0392b; /* Slightly darker red */
+  transform: translateY(-3px); /* More pronounced lift */
+  box-shadow: 0 8px 20px rgba(231,76,60,0.5);
 }
 
 /* Mobile specific Hero adjustments */
 @media (max-width: 600px) {
   .hero {
-    padding: 80px 15px; /* Reduce padding */
+    padding: 100px 15px; /* Reduce padding */
   }
   .hero h1 {
-    font-size: 2.5rem; /* Smaller font size */
+    font-size: 3rem; /* Smaller font size */
   }
   .hero p {
-    font-size: 1.2rem; /* Smaller font size */
+    font-size: 1.4rem; /* Smaller font size */
   }
 }
 
-
-/* Form styles */
+/* --- Form styles --- */
 form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    background: #fff;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    margin-top: 1.5rem;
+    gap: 1.5rem; /* More space between form elements */
+    background: var(--text-light);
+    padding: 3rem; /* More padding */
+    border-radius: 10px;
+    box-shadow: 0 6px 20px var(--shadow-light);
+    margin-top: 2rem;
 }
-form h3 { /* Style for form titles */
+form h3 {
     text-align: center;
-    color: #e53935; /* Using red accent for form headers */
-    margin-bottom: 1.5rem;
+    color: var(--primary-dark); /* Form titles more consistent with main text */
+    margin-bottom: 2rem; /* More space below title */
+    font-size: 2rem; /* Larger title */
+    font-weight: 700;
 }
 form label {
     font-weight: 600;
-    color: #333;
-    display: block; /* Ensures label takes its own line */
-    margin-bottom: 0.25rem;
+    color: var(--text-dark);
+    display: block;
+    margin-bottom: 0.5rem; /* More space */
 }
 form input[type="text"],
 form input[type="email"],
 form input[type="password"],
 form input[type="number"],
 form textarea {
-    padding: 0.8rem;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 1rem;
-    /* Add focus style */
+    padding: 1rem; /* More padding */
+    border: 1px solid var(--border-color);
+    border-radius: 6px; /* Slightly more rounded */
+    font-size: 1.05rem; /* Larger font */
     outline: none;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    box-sizing: border-box; /* Include padding/border in width */
+    box-sizing: border-box;
 }
 form input[type="text"]:focus,
 form input[type="email"]:focus,
 form input[type="password"]:focus,
 form input[type="number"]:focus,
 form textarea:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25); /* Stronger blue glow */
 }
 form textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 120px;
 }
 form button {
-    background: #007bff; /* Blue button for general forms */
-    color: white;
+    background: var(--accent-blue);
+    color: var(--text-light);
     border: none;
-    padding: 0.9rem 1.5rem;
-    font-size: 1rem;
-    border-radius: 5px;
+    padding: 1rem 2rem; /* More padding */
+    font-size: 1.1rem; /* Larger font */
+    border-radius: 6px; /* Slightly more rounded */
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    outline: none; /* Remove default focus outline */
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    outline: none;
+    font-weight: 600; /* Bolder */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Subtle shadow on buttons */
 }
 form button:hover {
-    background: #0056b3;
-    transform: translateY(-1px); /* Slight lift on hover */
+    background: #2980b9; /* Darker blue */
+    transform: translateY(-2px); /* More lift */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* More prominent shadow on hover */
 }
 form button:focus {
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Focus style for buttons */
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25); /* Focus style for buttons */
 }
 /* Loading state for buttons */
 form button.is-loading {
-    background-color: #a0a0a0; /* Greyed out */
+    background-color: var(--text-medium); /* Greyed out */
     cursor: not-allowed;
     transform: translateY(0); /* No lift when loading */
     box-shadow: none;
 }
 
-#auth form + form { /* Separate login/register forms */
-    margin-top: 2rem;
+#auth form + form {
+    margin-top: 2.5rem;
 }
-#auth #googleLoginBtn { /* Google specific color */
-    background: #dd4b39;
-    margin-top: 1rem;
+#auth #googleLoginBtn {
+    background: #dd4b39; /* Keep Google red */
+    box-shadow: 0 2px 8px rgba(221, 75, 57, 0.2);
 }
 #auth #googleLoginBtn:hover {
     background: #c23321;
+    box-shadow: 0 4px 12px rgba(221, 75, 57, 0.3);
 }
-#auth #logoutBtn { /* Logout specific color */
-    background: #e74c3c;
-    margin-top: 1rem;
+#auth #logoutBtn {
+    background: var(--accent-red); /* Use consistent accent red */
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
 }
 #auth #logoutBtn:hover {
     background: #c0392b;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
 
-/* NEW: Password visibility toggle */
+/* --- Password visibility toggle --- */
 .password-input-container {
     position: relative;
-    width: 100%; /* Ensure it takes full width of parent */
+    width: 100%;
 }
-
 .password-input-container input {
-    padding-right: 40px; /* Make space for the button */
+    padding-right: 45px; /* Make more space for the button */
 }
-
 .password-input-container button {
     position: absolute;
-    right: 5px;
+    right: 8px; /* Slightly more space from edge */
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 1.2rem;
-    color: #555;
-    padding: 5px;
-    border-radius: 3px;
+    font-size: 1.1rem; /* Slightly smaller icon */
+    color: var(--text-medium);
+    padding: 8px; /* More padding for easier clicking */
+    border-radius: 4px;
     transition: background-color 0.2s;
     width: auto; /* Override form button width */
+    box-shadow: none; /* No shadow for toggle button */
 }
-
 .password-input-container button:hover {
-    background-color: #e0e0e0;
+    background-color: var(--primary-light); /* Use light background for hover */
+    transform: translateY(-50%); /* Prevent lift on hover */
 }
 
 .forgot-password-link {
     display: block;
     text-align: right;
-    margin-top: -0.5rem;
-    margin-bottom: 1rem;
-    color: #007bff;
+    margin-top: -0.75rem; /* Adjust spacing */
+    margin-bottom: 1.25rem;
+    color: var(--accent-blue);
     text-decoration: none;
     font-size: 0.9rem;
+    font-weight: 500;
 }
 .forgot-password-link:hover {
     text-decoration: underline;
 }
 
-/* NEW: Password Strength Indicator */
+/* --- Password Strength Indicator --- */
 .password-strength {
     font-size: 0.85rem;
-    margin-top: -0.5rem; /* Adjust spacing */
-    margin-bottom: 0.5rem;
-    text-align: left; /* Align with input */
+    margin-top: -0.75rem; /* Adjust spacing */
+    margin-bottom: 0.75rem;
+    text-align: left;
     font-weight: 600;
 }
-
 .password-strength.weak {
-    color: #e74c3c; /* Red for weak */
+    color: var(--accent-red);
 }
 .password-strength.medium {
-    color: #f39c12; /* Orange for medium */
+    color: var(--accent-orange);
 }
 .password-strength.strong {
-    color: #28a745; /* Green for strong */
+    color: var(--accent-green);
 }
 
-
-/* Garage Section Display */
+/* --- Garage Section Display --- */
 #savedVehicles {
-    margin-top: 2rem;
-    border-top: 1px solid #eee;
-    padding-top: 1.5rem;
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--border-color); /* Use variable */
+    padding-top: 2rem; /* More padding */
 }
-
 .vehicle-card {
-    background-color: #fff;
-    border: 1px solid #ddd;
+    background-color: var(--text-light);
+    border: none; /* Remove subtle border, use shadow */
     border-radius: 8px;
-    padding: 1rem;
-    display: flex; /* Use flexbox for info side-by-side */
-    gap: 1rem; /* Space between info and button */
+    padding: 1.5rem; /* More padding */
+    display: flex;
+    gap: 1.5rem; /* More space */
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 1.2rem;
+    box-shadow: 0 4px 10px var(--shadow-light); /* Softer shadow */
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
-
+.vehicle-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px var(--shadow-medium);
+}
 .vehicle-info {
     flex-grow: 1;
 }
-
 .vehicle-info h4 {
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.6rem 0;
     text-align: left;
-    color: #e53935; /* Using red accent */
-    font-size: 1.1rem;
+    color: var(--primary-dark); /* Stronger vehicle name color */
+    font-size: 1.2rem; /* Slightly larger */
+    font-weight: 600;
 }
-
 .vehicle-info p {
     margin: 0;
-    font-size: 0.9rem;
-    color: #555;
+    font-size: 0.95rem;
+    color: var(--text-medium);
 }
-
 .delete-vehicle-btn {
-    background-color: #e74c3c;
-    color: #fff;
+    background-color: var(--accent-red);
+    color: var(--text-light);
     border: none;
-    border-radius: 5px;
-    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-    font-size: 0.85rem;
-    flex-shrink: 0; /* Prevent button from shrinking */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-
 .delete-vehicle-btn:hover {
     background-color: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-/* Product Search/Display Section */
+/* --- Product Search/Display Section --- */
 #products .product-options {
-    margin-top: 1.5rem;
-    background: #fff;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-top: 2rem;
+    background: var(--text-light);
+    padding: 3rem;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px var(--shadow-light);
 }
-
 #products .product-options h3 {
     text-align: center;
-    color: #e53935; /* Using red accent for product section headers */
+    color: var(--primary-dark); /* Consistent with form headers */
     margin-top: 0;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    font-weight: 700;
 }
-
 #products .product-options .vehicle-info {
     text-align: center;
-    font-size: 1.2rem;
+    font-size: 1.3rem; /* Stronger vehicle info font size */
     font-weight: bold;
-    margin-bottom: 1.5rem;
-    color: #007bff; /* Using blue for vehicle info */
+    margin-bottom: 2rem;
+    color: var(--primary-dark); /* Stronger vehicle info color */
 }
 
 /* New Search input and button styling */
 #products .general-search-section {
-    margin-top: 1.5rem;
-    text-align: center; /* Center the input and button */
+    margin-top: 2rem;
+    text-align: center;
     display: flex;
     justify-content: center;
-    gap: 0; /* No gap between input and button for joined look */
+    gap: 0;
+    max-width: 500px; /* Limit search bar width */
+    margin-left: auto;
+    margin-right: auto;
 }
 #products .general-search-section input[type="text"] {
-    flex-grow: 1; /* Allows input to take available space */
-    max-width: 300px; /* Limit max width */
-    padding: 0.8rem;
-    border: 1px solid #ddd;
-    border-right: none; /* No right border for joined look */
-    border-radius: 5px 0 0 5px; /* Rounded left, straight right */
+    flex-grow: 1;
+    max-width: calc(100% - 120px); /* Adjust max-width based on button size */
+    padding: 0.9rem;
+    border: 1px solid var(--border-color);
+    border-right: none;
+    border-radius: 6px 0 0 6px;
     font-size: 1rem;
-    vertical-align: middle; /* Align with button */
-    box-sizing: border-box; /* Include padding/border in width */
+    vertical-align: middle;
+    box-sizing: border-box;
     outline: none;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 #products .general-search-section input[type="text"]:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
 }
 #products .general-search-section button {
-    padding: 0.8rem 1.2rem;
-    background-color: #007bff; /* Blue search button */
-    color: white;
+    padding: 0.9rem 1.8rem; /* More padding for button */
+    background-color: var(--accent-blue);
+    color: var(--text-light);
     border: none;
-    border-radius: 0 5px 5px 0; /* Straight left, rounded right */
+    border-radius: 0 6px 6px 0;
     font-size: 1rem;
     cursor: pointer;
-    vertical-align: middle; /* Align with input */
+    vertical-align: middle;
     transition: background-color 0.3s ease, transform 0.2s ease;
     outline: none;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 #products .general-search-section button:hover {
-    background-color: #0056b3;
+    background-color: #2980b9;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 #products .general-search-section button:focus {
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
 }
 
 #products .category-buttons {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-top: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Slightly smaller min-width for more columns */
+    gap: 1.5rem; /* More space */
+    margin-top: 2.5rem;
 }
-
 #products .category-buttons button {
-    background: #4CAF50; /* Green category buttons */
-    color: white;
+    background: var(--accent-blue); /* Use consistent blue for category buttons */
+    color: var(--text-light);
     border: none;
-    padding: 0.9rem;
+    padding: 1rem;
     font-size: 1rem;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 #products .category-buttons button:hover {
-    background: #45a049;
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 #products .no-vehicle-message {
     text-align: center;
-    padding: 2rem;
+    padding: 2.5rem;
     font-style: italic;
-    color: #666;
+    color: var(--text-medium);
 }
 #products .no-vehicle-message a {
-    color: #007bff;
+    color: var(--accent-blue);
     text-decoration: none;
     font-weight: bold;
 }
@@ -533,42 +602,38 @@ form button.is-loading {
     text-decoration: underline;
 }
 
-/* NEW: Select Vehicle Dropdown Styling */
+/* --- Select Vehicle Dropdown Styling --- */
 .select-vehicle-container {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.8rem; /* More space */
 }
-
 .select-vehicle-container label {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: bold;
-    color: #333;
+    color: var(--text-dark);
 }
-
 .select-vehicle-container select {
-    padding: 0.6rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+    padding: 0.8rem 1.2rem; /* More padding */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
     font-size: 1rem;
-    max-width: 300px; /* Limit width */
+    max-width: 350px; /* Limit width */
     width: 100%;
-    background-color: #fff;
+    background-color: var(--text-light);
     cursor: pointer;
     outline: none;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-
 .select-vehicle-container select:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
 }
 
-
-/* Accessibility - Visually hidden class */
+/* --- Accessibility - Visually hidden class --- */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -581,45 +646,43 @@ form button.is-loading {
     border-width: 0;
 }
 
-/* Notification Styles */
+/* --- Notification Styles --- */
 .notification-container {
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 2000; /* Above everything else */
+    z-index: 2000;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-width: 300px;
+    gap: 12px; /* More space between notifications */
+    max-width: 320px; /* Slightly wider */
 }
-
-.notification-item { 
-    background-color: #333;
-    color: white;
-    padding: 15px 20px;
-    border-radius: 5px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    opacity: 0; 
+.notification-item {
+    background-color: var(--primary-dark);
+    color: var(--text-light);
+    padding: 18px 25px; /* More padding */
+    border-radius: 8px; /* Slightly more rounded */
+    box-shadow: 0 6px 15px var(--shadow-medium); /* Stronger shadow */
+    opacity: 0;
     transform: translateX(100%);
-    animation: slideIn 0.5s forwards; 
-    font-size: 0.95rem;
-    display: flex; 
+    animation: slideIn 0.5s forwards;
+    font-size: 1rem; /* Slightly larger text */
+    display: flex;
     justify-content: space-between;
     align-items: center;
+    font-weight: 500;
 }
-
-.notification-item .notification-message { 
-    margin-right: 10px; 
+.notification-item .notification-message {
+    margin-right: 15px; /* More space */
 }
-
-.notification-item .notification-close { 
+.notification-item .notification-close {
     background: none;
     border: none;
-    color: inherit; 
-    font-size: 1.5rem;
+    color: inherit;
+    font-size: 1.6rem; /* Slightly larger icon */
     cursor: pointer;
-    line-height: 1; 
-    padding: 0 5px;
+    line-height: 1;
+    padding: 0 8px;
     opacity: 0.8;
     transition: opacity 0.2s;
 }
@@ -628,15 +691,13 @@ form button.is-loading {
 }
 
 .notification-success {
-    background-color: #4CAF50; /* Green */
+    background-color: var(--accent-green);
 }
-
 .notification-error {
-    background-color: #f44336; /* Red */
+    background-color: var(--accent-red);
 }
-
 .notification-info {
-    background-color: #2196F3; /* Blue */
+    background-color: var(--accent-blue);
 }
 
 @keyframes slideIn {
@@ -646,171 +707,179 @@ form button.is-loading {
 /* Responsive adjustments for notifications */
 @media (max-width: 600px) {
     .notification-container {
-        top: 10px;
-        right: 10px;
-        left: 10px; 
+        top: 15px;
+        right: 15px;
+        left: 15px;
         max-width: none;
+    }
+    .notification-item {
+        padding: 15px 20px;
+        font-size: 0.9rem;
     }
 }
 
-/* Wishlist specific styles */
+/* --- Wishlist specific styles --- */
 #wishlist .no-items-message {
     text-align: center;
-    padding: 2rem;
+    padding: 2.5rem;
     font-style: italic;
-    color: #666;
+    color: var(--text-medium);
 }
 #wishlist .card .remove-from-wishlist-btn {
-    background-color: #f44336; /* Red for remove */
-    margin-top: 1rem;
-    padding: 0.6rem 1.2rem;
-    color: white;
+    background-color: var(--accent-red); /* Red for remove */
+    margin-top: 1.2rem;
+    padding: 0.7rem 1.4rem;
+    color: var(--text-light);
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 #wishlist .card .remove-from-wishlist-btn:hover {
-    background-color: #da190b;
+    background-color: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .add-to-wishlist-btn {
-    background-color: #ff9800; /* Orange for add to wishlist */
-    margin-top: 1rem;
-    padding: 0.6rem 1.2rem;
-    color: white;
+    background-color: var(--accent-orange); /* Orange for add to wishlist */
+    margin-top: 1.2rem;
+    padding: 0.7rem 1.4rem;
+    color: var(--text-light);
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-    display: block; /* Make it a block element to stack */
-    width: fit-content; /* Fit content for proper stacking */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: block;
+    width: fit-content;
     margin-left: auto;
     margin-right: auto;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .add-to-wishlist-btn:hover {
-    background-color: #e68a00;
+    background-color: #e67e22; /* Darker orange */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* Footer Styles */
+/* --- Footer Styles --- */
 footer {
-    background-color: #111; /* Match nav background */
-    color: #fff;
-    padding: 2rem 0;
+    background-color: var(--primary-dark);
+    color: var(--text-light);
+    padding: 2.5rem 0; /* More padding */
     text-align: center;
-    font-size: 0.9rem;
-    margin-top: 4rem; /* Add some space above the footer */
+    font-size: 0.95rem;
+    margin-top: 6rem; /* More space above the footer */
+    box-shadow: 0 -4px 12px var(--shadow-medium); /* Top shadow */
 }
-
 footer .container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
-    padding: 0 20px; /* Add padding for smaller screens */
+    gap: 1.5rem; /* More space */
+    padding: 0 25px; /* More padding for smaller screens */
 }
-
 .footer-links {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap; /* Allow links to wrap */
+    gap: 2rem; /* More space between links */
+    flex-wrap: wrap;
     justify-content: center;
 }
-
 .footer-links li a {
-    color: #fff;
+    color: var(--text-light);
     text-decoration: none;
     transition: color 0.3s ease;
+    font-weight: 500;
 }
-
 .footer-links li a:hover {
-    color: #e53935; /* Match red accent */
+    color: var(--accent-red);
 }
-
 .social-media {
     display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
+    gap: 1.5rem; /* More space */
+    margin-top: 1.5rem;
 }
-
 .social-media img {
-    width: 30px;
-    height: 30px;
+    width: 32px; /* Slightly larger icons */
+    height: 32px;
     transition: transform 0.2s ease;
 }
-
 .social-media img:hover {
-    transform: scale(1.1);
+    transform: scale(1.15); /* More pronounced scale */
 }
 
-/* Error Message Styles */
+/* --- Error Message Styles --- */
 .error-message {
-    color: #e53935; /* Red accent for errors */
+    color: var(--accent-red);
     font-size: 0.85rem;
-    margin-top: -0.5rem; /* Pull up closer to the input */
-    margin-bottom: 0.5rem;
-    display: block; /* Ensure it takes its own line */
+    margin-top: -0.75rem; /* Pull up closer to the input */
+    margin-bottom: 0.75rem;
+    display: block;
+    font-weight: 500;
 }
 
-/* Profile Page Styles */
+/* --- Profile Page Styles --- */
 .profile-info-card {
-    background-color: #fff;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    max-width: 600px;
-    margin: 2rem auto; /* Center it */
+    background-color: var(--text-light);
+    padding: 3rem; /* More padding */
+    border-radius: 10px;
+    box-shadow: 0 6px 20px var(--shadow-light);
+    max-width: 650px; /* Slightly wider */
+    margin: 3rem auto; /* Center it with more margin */
     text-align: left;
 }
-
 .profile-info-card h3 {
     text-align: center;
-    color: #e53935; /* Red accent */
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid #eee; /* Subtle separator */
-    padding-bottom: 10px;
+    color: var(--primary-dark);
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--border-color); /* Subtle separator */
+    padding-bottom: 15px; /* More padding below border */
+    font-size: 2rem;
+    font-weight: 700;
 }
-
 .profile-info-card p {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    color: #333;
+    font-size: 1.15rem; /* Slightly larger */
+    margin-bottom: 1.2rem;
+    color: var(--text-dark);
 }
-
 .profile-info-card strong {
-    color: #111; /* Darker for labels */
+    color: var(--primary-dark);
+    font-weight: 600;
 }
-
 .profile-info-card button {
-    background: #007bff; /* Blue button */
-    color: white;
+    background: var(--accent-blue);
+    color: var(--text-light);
     border: none;
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
-    border-radius: 5px;
+    padding: 0.9rem 1.8rem;
+    font-size: 1.05rem;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    margin-top: 1rem;
-    margin-right: 1rem; /* Space between buttons */
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    margin-top: 1.5rem; /* More margin */
+    margin-right: 1.5rem; /* Space between buttons */
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-
 .profile-info-card button:hover {
-    background: #0056b3;
+    background: #2980b9;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
-
 /* Specific styling for the Change Password button on profile page */
 #profile #changePasswordBtn {
-    background-color: #e53935; /* Using your red accent */
-    margin-top: 2rem; /* More space to separate from profile update form */
+    background-color: var(--accent-red);
+    margin-top: 2.5rem; /* More space to separate from profile update form */
     width: 100%;
-    max-width: 250px;
+    max-width: 280px; /* Slightly wider */
     margin-left: auto;
     margin-right: auto;
+    display: block; /* Ensure it takes full width of max-width */
 }
-
 #profile #changePasswordBtn:hover {
-    background-color: #c62828;
+    background-color: #c0392b;
 }
