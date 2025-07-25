@@ -335,18 +335,18 @@ form button {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Subtle shadow on buttons */
 }
 form button:hover {
-    background: #2980b9; /* Darker blue */
-    transform: translateY(-2px); /* More lift */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* More prominent shadow on hover */
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 form button:focus {
-    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25); /* Focus style for buttons */
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
 }
 /* Loading state for buttons */
 form button.is-loading {
-    background-color: var(--text-medium); /* Greyed out */
+    background-color: var(--text-medium);
     cursor: not-allowed;
-    transform: translateY(0); /* No lift when loading */
+    transform: translateY(0);
     box-shadow: none;
 }
 
@@ -354,7 +354,7 @@ form button.is-loading {
     margin-top: 2.5rem;
 }
 #auth #googleLoginBtn {
-    background: #dd4b39; /* Keep Google red */
+    background: #dd4b39;
     box-shadow: 0 2px 8px rgba(221, 75, 57, 0.2);
 }
 #auth #googleLoginBtn:hover {
@@ -362,7 +362,7 @@ form button.is-loading {
     box-shadow: 0 4px 12px rgba(221, 75, 57, 0.3);
 }
 #auth #logoutBtn {
-    background: var(--accent-red); /* Use consistent accent red */
+    background: var(--accent-red);
     box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
 }
 #auth #logoutBtn:hover {
@@ -376,33 +376,33 @@ form button.is-loading {
     width: 100%;
 }
 .password-input-container input {
-    padding-right: 45px; /* Make more space for the button */
+    padding-right: 45px;
 }
 .password-input-container button {
     position: absolute;
-    right: 8px; /* Slightly more space from edge */
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 1.1rem; /* Slightly smaller icon */
+    font-size: 1.1rem;
     color: var(--text-medium);
-    padding: 8px; /* More padding for easier clicking */
+    padding: 8px;
     border-radius: 4px;
     transition: background-color 0.2s;
-    width: auto; /* Override form button width */
-    box-shadow: none; /* No shadow for toggle button */
+    width: auto;
+    box-shadow: none;
 }
 .password-input-container button:hover {
-    background-color: var(--primary-light); /* Use light background for hover */
-    transform: translateY(-50%); /* Prevent lift on hover */
+    background-color: var(--primary-light);
+    transform: translateY(-50%);
 }
 
 .forgot-password-link {
     display: block;
     text-align: right;
-    margin-top: -0.75rem; /* Adjust spacing */
+    margin-top: -0.75rem;
     margin-bottom: 1.25rem;
     color: var(--accent-blue);
     text-decoration: none;
@@ -416,7 +416,7 @@ form button.is-loading {
 /* --- Password Strength Indicator --- */
 .password-strength {
     font-size: 0.85rem;
-    margin-top: -0.75rem; /* Adjust spacing */
+    margin-top: -0.75rem;
     margin-bottom: 0.75rem;
     text-align: left;
     font-weight: 600;
@@ -434,34 +434,31 @@ form button.is-loading {
 /* --- Garage Section Display --- */
 #savedVehicles {
     margin-top: 2.5rem;
-    border-top: 1px solid var(--border-color); /* Use variable */
-    padding-top: 2rem; /* More padding */
+    border-top: 1px solid var(--border-color);
+    padding-top: 2rem;
 }
 .vehicle-card {
     background-color: var(--text-light);
-    border: none; /* Remove subtle border, use shadow */
+    border: none;
     border-radius: 8px;
-    padding: 1.5rem; /* More padding */
+    padding: 1.5rem;
     display: flex;
-    gap: 1.5rem; /* More space */
+    gap: 1.5rem;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.2rem;
-    box-shadow: 0 4px 10px var(--shadow-light); /* Softer shadow */
+    box-shadow: 0 4px 10px var(--shadow-light);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 .vehicle-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 15px var(--shadow-medium);
 }
-.vehicle-info {
-    flex-grow: 1;
-}
 .vehicle-info h4 {
     margin: 0 0 0.6rem 0;
     text-align: left;
-    color: var(--primary-dark); /* Stronger vehicle name color */
-    font-size: 1.2rem; /* Slightly larger */
+    color: var(--primary-dark);
+    font-size: 1.2rem;
     font-weight: 600;
 }
 .vehicle-info p {
@@ -498,7 +495,7 @@ form button.is-loading {
 }
 #products .product-options h3 {
     text-align: center;
-    color: var(--primary-dark); /* Consistent with form headers */
+    color: var(--primary-dark);
     margin-top: 0;
     margin-bottom: 2rem;
     font-size: 2rem;
@@ -506,10 +503,10 @@ form button.is-loading {
 }
 #products .product-options .vehicle-info {
     text-align: center;
-    font-size: 1.3rem; /* Stronger vehicle info font size */
+    font-size: 1.3rem;
     font-weight: bold;
     margin-bottom: 2rem;
-    color: var(--primary-dark); /* Stronger vehicle info color */
+    color: var(--primary-dark);
 }
 
 /* New Search input and button styling */
@@ -519,13 +516,13 @@ form button.is-loading {
     display: flex;
     justify-content: center;
     gap: 0;
-    max-width: 500px; /* Limit search bar width */
+    max-width: 500px;
     margin-left: auto;
     margin-right: auto;
 }
 #products .general-search-section input[type="text"] {
     flex-grow: 1;
-    max-width: calc(100% - 120px); /* Adjust max-width based on button size */
+    max-width: calc(100% - 120px);
     padding: 0.9rem;
     border: 1px solid var(--border-color);
     border-right: none;
@@ -541,7 +538,7 @@ form button.is-loading {
     box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25);
 }
 #products .general-search-section button {
-    padding: 0.9rem 1.8rem; /* More padding for button */
+    padding: 0.9rem 1.8rem;
     background-color: var(--accent-blue);
     color: var(--text-light);
     border: none;
@@ -565,12 +562,12 @@ form button.is-loading {
 
 #products .category-buttons {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Slightly smaller min-width for more columns */
-    gap: 1.5rem; /* More space */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1.5rem;
     margin-top: 2.5rem;
 }
 #products .category-buttons button {
-    background: var(--accent-blue); /* Use consistent blue for category buttons */
+    background: var(--accent-blue);
     color: var(--text-light);
     border: none;
     padding: 1rem;
@@ -609,7 +606,7 @@ form button.is-loading {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.8rem; /* More space */
+    gap: 0.8rem;
 }
 .select-vehicle-container label {
     font-size: 1.2rem;
@@ -617,11 +614,11 @@ form button.is-loading {
     color: var(--text-dark);
 }
 .select-vehicle-container select {
-    padding: 0.8rem 1.2rem; /* More padding */
+    padding: 0.8rem 1.2rem;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 1rem;
-    max-width: 350px; /* Limit width */
+    max-width: 350px;
     width: 100%;
     background-color: var(--text-light);
     cursor: pointer;
@@ -654,32 +651,32 @@ form button.is-loading {
     z-index: 2000;
     display: flex;
     flex-direction: column;
-    gap: 12px; /* More space between notifications */
-    max-width: 320px; /* Slightly wider */
+    gap: 12px;
+    max-width: 320px;
 }
 .notification-item {
     background-color: var(--primary-dark);
     color: var(--text-light);
-    padding: 18px 25px; /* More padding */
-    border-radius: 8px; /* Slightly more rounded */
-    box-shadow: 0 6px 15px var(--shadow-medium); /* Stronger shadow */
+    padding: 18px 25px;
+    border-radius: 8px;
+    box-shadow: 0 6px 15px var(--shadow-medium);
     opacity: 0;
     transform: translateX(100%);
     animation: slideIn 0.5s forwards;
-    font-size: 1rem; /* Slightly larger text */
+    font-size: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-weight: 500;
 }
 .notification-item .notification-message {
-    margin-right: 15px; /* More space */
+    margin-right: 15px;
 }
 .notification-item .notification-close {
     background: none;
     border: none;
     color: inherit;
-    font-size: 1.6rem; /* Slightly larger icon */
+    font-size: 1.6rem;
     cursor: pointer;
     line-height: 1;
     padding: 0 8px;
@@ -726,7 +723,7 @@ form button.is-loading {
     color: var(--text-medium);
 }
 #wishlist .card .remove-from-wishlist-btn {
-    background-color: var(--accent-red); /* Red for remove */
+    background-color: var(--accent-red);
     margin-top: 1.2rem;
     padding: 0.7rem 1.4rem;
     color: var(--text-light);
@@ -743,7 +740,7 @@ form button.is-loading {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .add-to-wishlist-btn {
-    background-color: var(--accent-orange); /* Orange for add to wishlist */
+    background-color: var(--accent-orange);
     margin-top: 1.2rem;
     padding: 0.7rem 1.4rem;
     color: var(--text-light);
@@ -759,7 +756,7 @@ form button.is-loading {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .add-to-wishlist-btn:hover {
-    background-color: #e67e22; /* Darker orange */
+    background-color: #e67e22;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
@@ -768,25 +765,25 @@ form button.is-loading {
 footer {
     background-color: var(--primary-dark);
     color: var(--text-light);
-    padding: 2.5rem 0; /* More padding */
+    padding: 2.5rem 0;
     text-align: center;
     font-size: 0.95rem;
-    margin-top: 6rem; /* More space above the footer */
-    box-shadow: 0 -4px 12px var(--shadow-medium); /* Top shadow */
+    margin-top: 6rem;
+    box-shadow: 0 -4px 12px var(--shadow-medium);
 }
 footer .container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem; /* More space */
-    padding: 0 25px; /* More padding for smaller screens */
+    gap: 1.5rem;
+    padding: 0 25px;
 }
 .footer-links {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
-    gap: 2rem; /* More space between links */
+    gap: 2rem;
     flex-wrap: wrap;
     justify-content: center;
 }
@@ -801,23 +798,23 @@ footer .container {
 }
 .social-media {
     display: flex;
-    gap: 1.5rem; /* More space */
+    gap: 1.5rem;
     margin-top: 1.5rem;
 }
 .social-media img {
-    width: 32px; /* Slightly larger icons */
+    width: 32px;
     height: 32px;
     transition: transform 0.2s ease;
 }
 .social-media img:hover {
-    transform: scale(1.15); /* More pronounced scale */
+    transform: scale(1.15);
 }
 
 /* --- Error Message Styles --- */
 .error-message {
     color: var(--accent-red);
     font-size: 0.85rem;
-    margin-top: -0.75rem; /* Pull up closer to the input */
+    margin-top: -0.75rem;
     margin-bottom: 0.75rem;
     display: block;
     font-weight: 500;
@@ -826,24 +823,24 @@ footer .container {
 /* --- Profile Page Styles --- */
 .profile-info-card {
     background-color: var(--text-light);
-    padding: 3rem; /* More padding */
+    padding: 3rem;
     border-radius: 10px;
     box-shadow: 0 6px 20px var(--shadow-light);
-    max-width: 650px; /* Slightly wider */
-    margin: 3rem auto; /* Center it with more margin */
+    max-width: 650px;
+    margin: 3rem auto;
     text-align: left;
 }
 .profile-info-card h3 {
     text-align: center;
     color: var(--primary-dark);
     margin-bottom: 2rem;
-    border-bottom: 2px solid var(--border-color); /* Subtle separator */
-    padding-bottom: 15px; /* More padding below border */
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 15px;
     font-size: 2rem;
     font-weight: 700;
 }
 .profile-info-card p {
-    font-size: 1.15rem; /* Slightly larger */
+    font-size: 1.15rem;
     margin-bottom: 1.2rem;
     color: var(--text-dark);
 }
@@ -860,8 +857,8 @@ footer .container {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    margin-top: 1.5rem; /* More margin */
-    margin-right: 1.5rem; /* Space between buttons */
+    margin-top: 1.5rem;
+    margin-right: 1.5rem;
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
@@ -873,12 +870,12 @@ footer .container {
 /* Specific styling for the Change Password button on profile page */
 #profile #changePasswordBtn {
     background-color: var(--accent-red);
-    margin-top: 2.5rem; /* More space to separate from profile update form */
+    margin-top: 2.5rem;
     width: 100%;
-    max-width: 280px; /* Slightly wider */
+    max-width: 280px;
     margin-left: auto;
     margin-right: auto;
-    display: block; /* Ensure it takes full width of max-width */
+    display: block;
 }
 #profile #changePasswordBtn:hover {
     background-color: #c0392b;
