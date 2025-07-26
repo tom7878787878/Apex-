@@ -300,6 +300,7 @@ form input[type="text"],
 form input[type="email"],
 form input[type="password"],
 form input[type="number"],
+form input[type="tel"], /* Added for phone number */
 form textarea {
     padding: 1rem; /* More padding */
     border: 1px solid var(--border-color);
@@ -313,6 +314,7 @@ form input[type="text"]:focus,
 form input[type="email"]:focus,
 form input[type="password"]:focus,
 form input[type="number"]:focus,
+form input[type="tel"]:focus, /* Added for phone number */
 form textarea:focus {
     border-color: var(--accent-blue);
     box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.25); /* Stronger blue glow */
@@ -839,6 +841,14 @@ footer .container {
     font-size: 2rem;
     font-weight: 700;
 }
+.profile-info-card h4 { /* Added for sub-sections */
+    color: var(--primary-dark);
+    margin-top: 2.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
 .profile-info-card p {
     font-size: 1.15rem;
     margin-bottom: 1.2rem;
@@ -848,6 +858,29 @@ footer .container {
     color: var(--primary-dark);
     font-weight: 600;
 }
+
+/* Style for checkbox group */
+.form-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* Space between checkbox and label */
+    margin-bottom: 1rem; /* Space below the group */
+}
+
+.form-checkbox-group input[type="checkbox"] {
+    /* Style for the checkbox itself */
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent-blue); /* Modern checkbox color */
+    cursor: pointer;
+}
+
+.form-checkbox-group label {
+    margin-bottom: 0; /* Remove default label margin */
+    cursor: pointer;
+    font-weight: 500; /* Slightly lighter weight for checkbox label */
+}
+
 .profile-info-card button {
     background: var(--accent-blue);
     color: var(--text-light);
@@ -879,4 +912,86 @@ footer .container {
 }
 #profile #changePasswordBtn:hover {
     background-color: #c0392b;
+}
+
+/* Style for Delete Account Button */
+#profile .delete-account-btn {
+    background-color: #d32f2f; /* Darker red for delete */
+    margin-top: 1rem; /* Closer to change password */
+}
+
+#profile .delete-account-btn:hover {
+    background-color: #b71c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(211,47,47,0.4);
+}
+/* Style for order history items if they were to use .card style */
+#orderHistoryList .card,
+#profileSavedVehiclesList .vehicle-card-profile { /* Added for vehicles in profile */
+    background-color: var(--text-light);
+    box-shadow: 0 2px 8px var(--shadow-light);
+    padding: 1rem;
+    margin-bottom: 1rem; /* Add margin if they aren't in a grid */
+    border-radius: 8px;
+    text-align: left; /* Align text left within order card */
+    font-size: 0.95rem;
+}
+/* Specific styling for vehicle cards in profile */
+#profileSavedVehiclesList .vehicle-card-profile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    transition: none; /* Remove hover animation if already present on .card */
+}
+
+#profileSavedVehiclesList .vehicle-card-profile h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--primary-dark);
+    font-size: 1.1rem;
+}
+#profileSavedVehiclesList .vehicle-card-profile p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-medium);
+}
+#profileSavedVehiclesList .delete-vehicle-btn-profile { /* Specific delete button for profile page vehicles */
+    background-color: var(--accent-red);
+    color: var(--text-light);
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+#profileSavedVehiclesList .delete-vehicle-btn-profile:hover {
+    background-color: #c0392b;
+}
+
+#orderHistoryList .card h5 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--primary-dark);
+    font-size: 1.1rem;
+}
+#orderHistoryList .card p {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--text-medium);
+}
+#orderHistoryList .view-order-details-btn {
+    background-color: var(--accent-blue);
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    margin-top: 0.75rem;
+    display: inline-block;
+    box-shadow: none;
+}
+#orderHistoryList .view-order-details-btn:hover {
+    background-color: #2980b9;
+    transform: translateY(0);
+    box-shadow: none;
 }

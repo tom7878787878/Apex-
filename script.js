@@ -1,9 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail, updateProfile, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"; // Added reauthenticateWithCredential, EmailAuthProvider, deleteUser
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, collection, query, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"; // Added collection, query, getDocs, deleteDoc
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -19,9 +18,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
+export const auth = getAuth(app); // Export auth if needed in other modules
+export const db = getFirestore(app); // Export db if needed in other modules
 
 // Amazon Affiliate Tag
 const amazonTag = "everythi09e02-20";
@@ -62,10 +60,25 @@ let wishlistInitialMessage;
 
 // --- Profile Elements (assigned in DOMContentLoaded) ---
 let profileEmailSpan;
+let profileDisplayNameSpan; // Added for display name
 let changePasswordBtn;
 let updateProfileForm;
-let displayNameInput;
+let firstNameInput; // New field
+let lastNameInput;  // New field
+let phoneInput;     // New field
+let addressInput;   // New field
+let cityInput;      // New field
+let stateInput;     // New field
+let zipInput;       // New field
+let countryInput;   // New field
 let saveProfileBtn;
+let preferencesForm; // New form
+let newsletterCheckbox; // New checkbox
+let savePreferencesBtn; // New button
+let orderHistoryList; // New list container
+let profileSavedVehiclesList; // New list container
+let noProfileVehiclesMessage; // New message
+let deleteAccountBtn; // New button
 
 // --- Contact Form Elements (assigned in DOMContentLoaded) ---
 let contactForm;
@@ -76,6 +89,7 @@ let selectedVehicleForSearch = null;
 // Firebase Firestore constants
 const FIRESTORE_VEHICLES_FIELD = 'vehicles';
 const FIRESTORE_WISHLIST_FIELD = 'wishlist';
+const FIRESTORE_USERS_COLLECTION = 'users'; // New Firestore collection for user profiles
 const MAX_VEHICLES = 3;
 
 
@@ -90,11 +104,12 @@ window.showPage = function(id) {
         console.error(`Page element with ID '${id}' not found!`);
     }
 
-    if (hamburgerMenu && hamburgerMenu.classList.contains('active')) {
-        hamburgerMenu.classList.remove('active');
+    if (hamburgerMenu && hamburgerMenu.classList.contains('open')) { // Changed 'active' to 'open' for consistency with hamburger class
+        hamburgerMenu.classList.remove('open');
         navLinks.classList.remove('active');
     }
 
+    // Load data specific to the page being shown
     if (id === 'products') {
         loadVehicleForProducts();
     } else if (id === 'garage') {
@@ -102,7 +117,7 @@ window.showPage = function(id) {
     } else if (id === 'wishlist') {
         loadWishlist();
     } else if (id === 'profile') {
-        loadProfile();
+        loadProfile(); // This will now load all profile data
     }
 }
 
@@ -197,8 +212,9 @@ function setButtonLoading(button, isLoading) {
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
     console.log("Auth state changed. User:", user ? user.email : "none");
+    // Ensure all necessary elements are available before updating UI
     if (!userEmailSpan) {
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => { // Fallback if DOMContentLoaded hasn't fired yet
             const emailSpan = document.getElementById("userEmail");
             if (emailSpan) updateAuthStateUI(user, emailSpan);
         });
@@ -211,26 +227,63 @@ function updateAuthStateUI(user, emailSpanElement) {
     if (user) {
         emailSpanElement.textContent = `Logged in as: ${user.email}`;
 
+        // Load data for all relevant sections when user logs in
         renderSavedVehicles();
         loadWishlist();
-        loadProfile();
+        loadProfile(); // This will now fetch and populate all profile data
 
+        // If currently on auth page, redirect to home
         if (document.querySelector('.page.active')?.id === 'auth') {
             showPage('home');
         }
         clearAuthFields();
 
+        // --- NEW: Create initial user document in Firestore if it doesn't exist ---
+        const userDocRef = doc(db, FIRESTORE_USERS_COLLECTION, user.uid);
+        getDoc(userDocRef).then((docSnap) => {
+            if (!docSnap.exists()) {
+                console.log("Creating new user profile document in Firestore.");
+                setDoc(userDocRef, {
+                    email: user.email,
+                    displayName: user.displayName || '',
+                    createdAt: serverTimestamp(),
+                    // Initialize other fields
+                    firstName: '',
+                    lastName: '',
+                    phone: '',
+                    address: '',
+                    city: '',
+                    state: '',
+                    zip: '',
+                    country: '',
+                    newsletterSubscription: false,
+                    // Note: Vehicles and Wishlist are usually subcollections or separate top-level collections
+                    // but if they are directly in the user document, ensure they are initialized as arrays.
+                    // [FIRESTORE_VEHICLES_FIELD]: [], // If vehicles are stored directly in user doc
+                    // [FIRESTORE_WISHLIST_FIELD]: [], // If wishlist is stored directly in user doc
+                }).then(() => {
+                    console.log("User profile document created.");
+                }).catch(error => {
+                    console.error("Error creating user profile document:", error);
+                });
+            }
+        }).catch(error => {
+            console.error("Error checking user profile document:", error);
+        });
+
     } else {
         emailSpanElement.textContent = "";
+        // If logged out from a user-specific page, redirect to auth page
         if (document.querySelector(".page.active")?.id === "garage" ||
             document.querySelector(".page.active")?.id === "wishlist" ||
             document.querySelector(".page.active")?.id === "profile") {
             showPage("auth");
         }
         clearAuthFields();
-        renderSavedVehicles();
-        loadWishlist();
-        loadProfile();
+        // Clear data displayed on user-specific sections upon logout
+        renderSavedVehicles(); // Clears vehicles
+        loadWishlist();       // Clears wishlist
+        loadProfile();        // Clears profile fields
         showNotification("Logged out.", 'info', 2000);
     }
 }
@@ -282,10 +335,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Profile Elements
     profileEmailSpan = document.getElementById('profileEmail');
+    profileDisplayNameSpan = document.getElementById('profileDisplayName'); // New span for display name
     changePasswordBtn = document.getElementById('changePasswordBtn');
     updateProfileForm = document.getElementById('updateProfileForm');
-    displayNameInput = document.getElementById('displayNameInput');
+    firstNameInput = document.getElementById('firstNameInput'); // New
+    lastNameInput = document.getElementById('lastNameInput');   // New
+    phoneInput = document.getElementById('phoneInput');     // New
+    addressInput = document.getElementById('addressInput');   // New
+    cityInput = document.getElementById('cityInput');       // New
+    stateInput = document.getElementById('stateInput');     // New
+    zipInput = document.getElementById('zipInput');         // New
+    countryInput = document.getElementById('countryInput');   // New
     saveProfileBtn = document.getElementById('saveProfileBtn');
+
+    preferencesForm = document.getElementById('preferencesForm'); // New form
+    newsletterCheckbox = document.getElementById('newsletterCheckbox'); // New checkbox
+    savePreferencesBtn = document.getElementById('savePreferencesBtn'); // New button
+
+    orderHistoryList = document.getElementById('orderHistoryList'); // New order history list
+    profileSavedVehiclesList = document.getElementById('profileSavedVehiclesList'); // New profile vehicles list
+    noProfileVehiclesMessage = document.getElementById('noProfileVehiclesMessage'); // New message for profile vehicles
+    deleteAccountBtn = document.getElementById('deleteAccountBtn'); // New delete account button
 
     // Assign Contact Form Elements
     contactForm = document.getElementById('contactForm');
@@ -557,18 +627,10 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Validation passed, proceeding with save logic.");
 
             try {
-                const userDocRef = getUserGarageDocRef();
-                console.log("Fetching user document snapshot for save...");
-                const userDocSnap = await getDoc(userDocRef);
-
-                let vehicles = [];
-
-                if (userDocSnap.exists()) {
-                    vehicles = userDocSnap.data()[FIRESTORE_VEHICLES_FIELD] || [];
-                    console.log("Existing vehicles data found:", vehicles);
-                } else {
-                    console.log("User document does not exist, will create.");
-                }
+                // Modified: Now storing vehicles in a subcollection under the user's document
+                const userVehiclesCollectionRef = collection(db, FIRESTORE_USERS_COLLECTION, auth.currentUser.uid, FIRESTORE_VEHICLES_FIELD);
+                const existingVehiclesSnapshot = await getDocs(userVehiclesCollectionRef);
+                const vehicles = existingVehiclesSnapshot.docs.map(doc => doc.data());
 
                 if (vehicles.length >= MAX_VEHICLES) {
                     showNotification(`You can save a maximum of ${MAX_VEHICLES} vehicles. Please delete one to add a new one.`, 'error', 5000);
@@ -577,10 +639,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const newVehicle = { make, model, year };
+                const newVehicle = { make, model, year, createdAt: serverTimestamp() }; // Add timestamp for order
                 console.log("Attempting to save new vehicle:", newVehicle);
 
-                // Prevent adding duplicate vehicles for better UX
+                // Prevent adding duplicate vehicles for better UX (checking against current fetched list)
                 const isDuplicate = vehicles.some(v => v.make === newVehicle.make && v.model === newVehicle.model && v.year === newVehicle.year);
                 if (isDuplicate) {
                     showNotification(`Vehicle "${year} ${make} ${model}" is already in your garage.`, "info");
@@ -589,27 +651,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-
-                if (!userDocSnap.exists()) {
-                    console.log("Creating new document with initial vehicle.");
-                    await setDoc(userDocRef, {
-                        [FIRESTORE_VEHICLES_FIELD]: [newVehicle],
-                        timestamp: serverTimestamp()
-                    });
-                } else {
-                    console.log("Updating existing vehicles field with arrayUnion.");
-                    await updateDoc(userDocRef, {
-                        [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle),
-                        timestamp: serverTimestamp()
-                    });
-                }
+                // Add a new document in the 'vehicles' subcollection with an auto-generated ID
+                await setDoc(doc(userVehiclesCollectionRef), newVehicle);
 
                 showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, "success");
                 garageForm.reset();
                 // MODIFIED: Added a small delay to allow Firestore to synchronize write operation
                 setTimeout(async () => {
-                    await renderSavedVehicles();
-                    await loadVehicleForProducts();
+                    await renderSavedVehicles(); // Re-render garage list
+                    await loadVehicleForProducts(); // Update products page vehicle selector
+                    await loadProfileVehicles(auth.currentUser.uid); // Update profile page vehicle list
                 }, 500); // 500ms delay
                 console.log("Vehicle save process completed successfully.");
             } catch (err) {
@@ -660,12 +711,11 @@ document.addEventListener('DOMContentLoaded', () => {
     } else { console.warn("Clear Wishlist Button not found."); }
 
 
-    // Profile Page Functionality
-    if (updateProfileForm && displayNameInput && saveProfileBtn) {
+    // --- Profile Page Functionality ---
+    if (updateProfileForm && firstNameInput && lastNameInput && phoneInput && addressInput && cityInput && stateInput && zipInput && countryInput && saveProfileBtn) {
         updateProfileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const user = auth.currentUser;
-            const newDisplayName = displayNameInput.value.trim();
             const submitBtn = saveProfileBtn;
 
             clearFormErrors('updateProfileForm');
@@ -675,29 +725,96 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Basic validation
-            if (!newDisplayName) {
-                displayFormError('displayNameError', 'Display name cannot be empty.');
-                showNotification('Please enter a display name.', 'error');
+            // Get updated values from form fields
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const phone = phoneInput.value.trim();
+            const address = addressInput.value.trim();
+            const city = cityInput.value.trim();
+            const state = stateInput.value.trim();
+            const zip = zipInput.value.trim();
+            const country = countryInput.value.trim();
+
+            let isValid = true;
+            if (!firstName) { displayFormError('firstNameError', 'First name is required.'); isValid = false; }
+            if (!lastName) { displayFormError('lastNameError', 'Last name is required.'); isValid = false; }
+            // Add more specific validation for phone, address, etc. if needed
+            // Example: if (!phone.match(/^\d{10}$/)) { displayFormError('phoneError', 'Invalid phone format.'); isValid = false; }
+
+            if (!isValid) {
+                showNotification('Please fill in all required profile fields.', 'error');
                 return;
             }
 
             setButtonLoading(submitBtn, true);
 
             try {
-                await updateProfile(user, {
-                    displayName: newDisplayName
-                });
-                showNotification("Profile updated successfully!", "success");
-                loadProfile();
+                // Update Firebase Auth display name
+                const fullDisplayName = `${firstName} ${lastName}`.trim();
+                if (user.displayName !== fullDisplayName) {
+                    await updateProfile(user, {
+                        displayName: fullDisplayName
+                    });
+                }
+
+                // Update user document in Firestore with new personal info
+                const userDocRef = doc(db, FIRESTORE_USERS_COLLECTION, user.uid);
+                await setDoc(userDocRef, {
+                    firstName: firstName,
+                    lastName: lastName,
+                    phone: phone,
+                    address: address,
+                    city: city,
+                    state: state,
+                    zip: zip,
+                    country: country,
+                    lastUpdated: serverTimestamp()
+                }, { merge: true }); // Use merge: true to avoid overwriting other fields like email, createdAt
+
+                showNotification("Personal info updated successfully!", "success");
+                loadProfile(); // Reload profile to reflect changes
             } catch (error) {
-                console.error("Error updating profile:", error);
-                showNotification(`Failed to update profile: ${error.message}`, "error");
+                console.error("Error updating profile personal info:", error);
+                showNotification(`Failed to update personal info: ${error.message}`, "error");
             } finally {
                 setButtonLoading(submitBtn, false);
             }
         });
     } else { console.warn("Update Profile Form or its elements not found."); }
+
+    // --- NEW: Preferences Form Listener ---
+    if (preferencesForm && newsletterCheckbox && savePreferencesBtn) {
+        preferencesForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            const submitBtn = savePreferencesBtn;
+
+            if (!user) {
+                showNotification("You must be logged in to update preferences.", "error");
+                return;
+            }
+
+            const isSubscribed = newsletterCheckbox.checked;
+
+            setButtonLoading(submitBtn, true);
+
+            try {
+                const userDocRef = doc(db, FIRESTORE_USERS_COLLECTION, user.uid);
+                await setDoc(userDocRef, {
+                    newsletterSubscription: isSubscribed,
+                    lastUpdated: serverTimestamp()
+                }, { merge: true });
+
+                showNotification("Preferences updated successfully!", "success");
+            } catch (error) {
+                console.error("Error updating preferences:", error);
+                showNotification(`Failed to update preferences: ${error.message}`, "error");
+            } finally {
+                setButtonLoading(submitBtn, false);
+            }
+        });
+    } else { console.warn("Preferences Form or its elements not found."); }
+
 
     if (changePasswordBtn) {
         changePasswordBtn.addEventListener('click', async () => {
@@ -716,6 +833,81 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     } else { console.warn("Change Password button not found."); }
+
+    // --- NEW: Delete Account Button Listener ---
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            if (!user) {
+                showNotification("No user logged in to delete.", "error");
+                return;
+            }
+
+            if (!confirm("Are you ABSOLUTELY sure you want to delete your account? This action is irreversible and will delete ALL your data (profile, vehicles, wishlist, etc.).")) {
+                showNotification("Account deletion cancelled.", "info");
+                return;
+            }
+
+            const password = prompt("To confirm, please enter your password:");
+            if (!password) {
+                showNotification("Account deletion cancelled.", "info");
+                return;
+            }
+
+            setButtonLoading(deleteAccountBtn, true);
+
+            try {
+                // 1. Re-authenticate the user (Firebase security requirement)
+                const credential = EmailAuthProvider.credential(user.email, password);
+                await reauthenticateWithCredential(user, credential);
+                showNotification("Re-authentication successful. Proceeding with deletion...", "info");
+
+                // 2. Delete user's Firestore data (VERY IMPORTANT!)
+                const userDocRef = doc(db, FIRESTORE_USERS_COLLECTION, user.uid);
+                await deleteDoc(userDocRef); // Delete the main user profile document
+
+                // Delete subcollection 'vehicles'
+                const vehiclesCollectionRef = collection(db, FIRESTORE_USERS_COLLECTION, user.uid, FIRESTORE_VEHICLES_FIELD);
+                const vehicleDocsSnapshot = await getDocs(vehiclesCollectionRef);
+                const deleteVehiclePromises = vehicleDocsSnapshot.docs.map(d => deleteDoc(d.ref));
+                await Promise.all(deleteVehiclePromises);
+
+                // Delete subcollection 'wishlist' (assuming wishlist is also a subcollection)
+                const wishlistCollectionRef = collection(db, FIRESTORE_USERS_COLLECTION, user.uid, FIRESTORE_WISHLIST_FIELD);
+                const wishlistDocsSnapshot = await getDocs(wishlistCollectionRef);
+                const deleteWishlistPromises = wishlistDocsSnapshot.docs.map(d => deleteDoc(d.ref));
+                await Promise.all(deleteWishlistPromises);
+
+                // NOTE: If orders or other data are stored in separate top-level collections
+                // but linked by userId, you would need to query those collections and delete them here.
+                // E.g., const ordersQuery = query(collection(db, 'orders'), where('userId', '==', user.uid));
+                // const orderDocs = await getDocs(ordersQuery);
+                // const deleteOrderPromises = orderDocs.docs.map(d => deleteDoc(d.ref));
+                // await Promise.all(deleteOrderPromises);
+
+
+                // 3. Delete Firebase Authentication account
+                await deleteUser(user);
+
+                showNotification("Your account and all associated data have been permanently deleted.", "success", 7000);
+                // Auth state listener will handle UI redirect to home/auth
+            } catch (error) {
+                console.error("Error deleting account:", error);
+                if (error.code === 'auth/requires-recent-login') {
+                    showNotification("For security, please log in again just before deleting your account.", "error");
+                } else if (error.code === 'auth/invalid-credential') {
+                    showNotification("Incorrect password. Account deletion failed.", "error");
+                } else if (error.code === 'auth/user-mismatch') {
+                    showNotification("User mismatch. Please ensure you are logged in with the correct account.", "error");
+                }
+                else {
+                    showNotification(`Account deletion failed: ${error.message}`, "error", 7000);
+                }
+            } finally {
+                setButtonLoading(deleteAccountBtn, false);
+            }
+        });
+    } else { console.warn("Delete Account button not found."); }
 
 
     // Contact Form
@@ -784,27 +976,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- Helper Functions (defined outside DOMContentLoaded so they are globally accessible) ---
-function getUserGarageDocRef() {
+
+// MODIFIED: Updated to use the new FIRESTORE_USERS_COLLECTION for user profiles
+function getUserProfileDocRef() {
     if (!auth.currentUser) {
         return null;
     }
-    return doc(db, "garages", auth.currentUser.uid);
+    return doc(db, FIRESTORE_USERS_COLLECTION, auth.currentUser.uid);
 }
 
+// MODIFIED: This now points to a subcollection under the user's profile
+function getUserVehiclesCollectionRef() {
+    if (!auth.currentUser) {
+        return null;
+    }
+    return collection(db, FIRESTORE_USERS_COLLECTION, auth.currentUser.uid, FIRESTORE_VEHICLES_FIELD);
+}
+
+// MODIFIED: This now points to a subcollection under the user's profile
+function getUserWishlistCollectionRef() {
+    if (!auth.currentUser) {
+        return null;
+    }
+    return collection(db, FIRESTORE_USERS_COLLECTION, auth.currentUser.uid, FIRESTORE_WISHLIST_FIELD);
+}
+
+// MODIFIED: Fetches vehicles from the new user subcollection
 async function getSavedVehiclesFromFirestore() {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
+    const userVehiclesCollectionRef = getUserVehiclesCollectionRef();
+    if (!userVehiclesCollectionRef) {
         console.log("getSavedVehiclesFromFirestore: Not logged in, returning empty array.");
         return [];
     }
 
     try {
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            return data[FIRESTORE_VEHICLES_FIELD] || [];
-        }
-        return [];
+        const querySnapshot = await getDocs(userVehiclesCollectionRef);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); // Return with document ID
     } catch (error) {
         console.error("Error getting vehicles from Firestore:", error);
         showNotification("Error loading saved vehicles.", "error");
@@ -842,9 +1049,11 @@ async function renderSavedVehicles() {
             savedVehiclesContainer.appendChild(noVehiclesMessage); // Ensure the message is actually inside the container
         } else {
             noVehiclesMessage.style.display = 'none'; // Hide the message if vehicles exist
-            vehicles.forEach((vehicle, index) => {
+            vehicles.forEach((vehicle) => { // Removed index as we'll use Firestore doc ID for deletion
                 const vehicleCard = document.createElement('div');
                 vehicleCard.className = 'vehicle-card';
+                // Store the Firestore document ID for deletion
+                vehicleCard.setAttribute('data-vehicle-firestore-id', vehicle.id);
                 vehicleCard.innerHTML = `
                     <div class="vehicle-info">
                         <h4>${vehicle.year} ${vehicle.make} ${vehicle.model}</h4>
@@ -853,9 +1062,7 @@ async function renderSavedVehicles() {
                         <p>Year: ${vehicle.year}</p>
                     </div>
                     <button class="delete-vehicle-btn"
-                            data-make="${vehicle.make}"
-                            data-model="${vehicle.model}"
-                            data-year="${vehicle.year}"
+                            data-vehicle-firestore-id="${vehicle.id}"
                             aria-label="Delete ${vehicle.year} ${vehicle.make} ${vehicle.model}">Delete</button>
                 `;
                 savedVehiclesContainer.appendChild(vehicleCard);
@@ -864,12 +1071,8 @@ async function renderSavedVehicles() {
             // Attach listeners after all cards are added
             document.querySelectorAll('#savedVehicles .delete-vehicle-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
-                    const vehicleToDelete = {
-                        make: e.target.dataset.make,
-                        model: e.target.dataset.model,
-                        year: parseInt(e.target.dataset.year)
-                    };
-                    await deleteVehicle(vehicleToDelete, e.target);
+                    const firestoreIdToDelete = e.target.dataset.vehicleFirestoreId; // Get the Firestore document ID
+                    await deleteVehicle(firestoreIdToDelete, e.target);
                 });
             });
         }
@@ -882,21 +1085,23 @@ async function renderSavedVehicles() {
     }
 }
 
-async function deleteVehicle(vehicleToDelete, button) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
+// MODIFIED: Delete vehicle by Firestore document ID
+async function deleteVehicle(firestoreIdToDelete, button) {
+    const userVehiclesCollectionRef = getUserVehiclesCollectionRef();
+    if (!userVehiclesCollectionRef) {
         return;
     }
 
     setButtonLoading(button, true);
 
     try {
-        await updateDoc(userDocRef, {
-            [FIRESTORE_VEHICLES_FIELD]: arrayRemove(vehicleToDelete)
-        });
-        showNotification(`Vehicle "${vehicleToDelete.year} ${vehicleToDelete.make} ${vehicleToDelete.model}" deleted.`, 'info');
-        renderSavedVehicles();
-        loadVehicleForProducts();
+        // Delete the specific vehicle document from the subcollection
+        await deleteDoc(doc(userVehiclesCollectionRef, firestoreIdToDelete));
+        showNotification(`Vehicle deleted.`, 'info');
+        // MODIFIED: Reload both garage and profile lists after deletion
+        await renderSavedVehicles();
+        await loadVehicleForProducts();
+        await loadProfileVehicles(auth.currentUser.uid); // Update profile vehicles
     } catch (error) {
         console.error("Error deleting vehicle:", error);
         showNotification("Error deleting vehicle: " + error.message, "error");
@@ -905,6 +1110,7 @@ async function deleteVehicle(vehicleToDelete, button) {
     }
 }
 
+// MODIFIED: loadVehicleForProducts to work with new vehicle structure
 async function loadVehicleForProducts() {
     const productContentDiv = document.getElementById('productContent');
     if (!productContentDiv) return;
@@ -928,20 +1134,19 @@ async function loadVehicleForProducts() {
 
         if (vehicles.length > 0) {
             // Ensure selectedVehicleForSearch is a valid vehicle from the current list
-            if (!selectedVehicleForSearch || !vehicles.some(v => 
-                v.make === selectedVehicleForSearch.make && 
-                v.model === selectedVehicleForSearch.model && 
+            if (!selectedVehicleForSearch || !vehicles.some(v =>
+                v.make === selectedVehicleForSearch.make &&
+                v.model === selectedVehicleForSearch.model &&
                 v.year === selectedVehicleForSearch.year)
             ) {
-                selectedVehicleForSearch = vehicles[0]; // Default to the first vehicle if none selected or old one removed
+                // If selectedVehicleForSearch is null or no longer in the list, default to the first vehicle
+                selectedVehicleForSearch = vehicles[0];
             }
 
-            let vehicleOptionsHtml = vehicles.map((v, i) => `
-                <option value="${i}" ${
-                    (selectedVehicleForSearch && 
-                     v.make === selectedVehicleForSearch.make && 
-                     v.model === selectedVehicleForSearch.model && 
-                     v.year === selectedVehicleForSearch.year)
+            let vehicleOptionsHtml = vehicles.map((v) => `
+                <option value="${v.id}" ${ // Use Firestore doc ID as value
+                    (selectedVehicleForSearch &&
+                     v.id === selectedVehicleForSearch.id) // Compare by ID now
                     ? 'selected' : ''
                 }>
                     ${v.year} ${v.make} ${v.model}
@@ -985,10 +1190,11 @@ async function loadVehicleForProducts() {
 
             if (vehicleSelect) {
                 vehicleSelect.addEventListener('change', (event) => {
-                    const selectedIndex = parseInt(event.target.value);
-                    selectedVehicleForSearch = vehicles[selectedIndex];
+                    const selectedVehicleId = event.target.value;
+                    selectedVehicleForSearch = vehicles.find(v => v.id === selectedVehicleId); // Find by ID
                     currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
-                    loadVehicleForProducts();
+                    // MODIFIED: No need to reload full page, just update the span
+                    // loadVehicleForProducts();
                 });
             }
 
@@ -1050,27 +1256,29 @@ window.searchAmazonGeneral = function(year, make, model) {
     }
 }
 
+// MODIFIED: addToWishlist to use user's subcollection for wishlist
 async function addToWishlist(product) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
+    const userWishlistCollectionRef = getUserWishlistCollectionRef();
+    if (!userWishlistCollectionRef) {
         showNotification("Please log in to add items to your wishlist.", "error");
         return;
     }
 
     try {
-        const currentWishlist = await getWishlistFromFirestore();
-        const exists = currentWishlist.some(item => item.id === product.id);
+        // Check if product already exists in wishlist using its ID
+        const q = query(userWishlistCollectionRef, where('id', '==', product.id));
+        const querySnapshot = await getDocs(q);
 
-        if (!exists) {
-            await updateDoc(userDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: arrayUnion(product)
-            });
-            showNotification(`${product.name} added to wishlist!`, "success");
-            if (document.querySelector('.page.active')?.id === 'wishlist') {
-                loadWishlist();
-            }
-        } else {
+        if (!querySnapshot.empty) {
             showNotification(`${product.name} is already in your wishlist.`, "info");
+            return;
+        }
+
+        // Add a new document to the wishlist subcollection
+        await setDoc(doc(userWishlistCollectionRef), { ...product, addedAt: serverTimestamp() });
+        showNotification(`${product.name} added to wishlist!`, "success");
+        if (document.querySelector('.page.active')?.id === 'wishlist') {
+            loadWishlist();
         }
     } catch (error) {
         console.error("Error adding to wishlist:", error);
@@ -1078,9 +1286,10 @@ async function addToWishlist(product) {
     }
 }
 
+// MODIFIED: removeFromWishlist to use user's subcollection for wishlist
 async function removeFromWishlist(productId, button) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
+    const userWishlistCollectionRef = getUserWishlistCollectionRef();
+    if (!userWishlistCollectionRef) {
         showNotification("Please log in to manage your wishlist.", "error");
         return;
     }
@@ -1088,13 +1297,14 @@ async function removeFromWishlist(productId, button) {
     setButtonLoading(button, true);
 
     try {
-        const currentWishlist = await getWishlistFromFirestore();
-        const itemToRemove = currentWishlist.find(item => item.id === productId);
+        // Query for the specific wishlist item by its 'id' field
+        const q = query(userWishlistCollectionRef, where('id', '==', productId));
+        const querySnapshot = await getDocs(q);
 
-        if (itemToRemove) {
-            await updateDoc(userDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove)
-            });
+        if (!querySnapshot.empty) {
+            // Get the document reference of the first matching item and delete it
+            const docToDelete = querySnapshot.docs[0];
+            await deleteDoc(doc(userWishlistCollectionRef, docToDelete.id)); // Delete by Firestore document ID
             showNotification("Product removed from wishlist.", "info");
             loadWishlist();
         } else {
@@ -1108,9 +1318,10 @@ async function removeFromWishlist(productId, button) {
     }
 }
 
+// MODIFIED: clearWishlist to use user's subcollection for wishlist
 async function clearWishlist(button) {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
+    const userWishlistCollectionRef = getUserWishlistCollectionRef();
+    if (!userWishlistCollectionRef) {
         showNotification("Please log in to clear your wishlist.", "error");
         return;
     }
@@ -1118,9 +1329,10 @@ async function clearWishlist(button) {
     setButtonLoading(button, true);
 
     try {
-        await updateDoc(userDocRef, {
-            [FIRESTORE_WISHLIST_FIELD]: []
-        });
+        const querySnapshot = await getDocs(userWishlistCollectionRef);
+        const deletePromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
+        await Promise.all(deletePromises); // Delete all documents in the subcollection
+
         showNotification("Wishlist cleared!", "info");
         loadWishlist();
     } catch (error) {
@@ -1131,20 +1343,17 @@ async function clearWishlist(button) {
     }
 }
 
+// MODIFIED: getWishlistFromFirestore to use user's subcollection for wishlist
 async function getWishlistFromFirestore() {
-    const userDocRef = getUserGarageDocRef();
-    if (!userDocRef) {
+    const userWishlistCollectionRef = getUserWishlistCollectionRef();
+    if (!userWishlistCollectionRef) {
         console.log("getWishlistFromFirestore: Not logged in, returning empty array.");
         return [];
     }
 
     try {
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            return data[FIRESTORE_WISHLIST_FIELD] || [];
-        }
-        return [];
+        const querySnapshot = await getDocs(userWishlistCollectionRef);
+        return querySnapshot.docs.map(doc => doc.data()); // Return just the data
     } catch (error) {
         console.error("Error getting wishlist from Firestore:", error);
         showNotification("Error loading wishlist.", "error");
@@ -1176,7 +1385,7 @@ async function loadWishlist() {
 
     try {
         const wishlist = await getWishlistFromFirestore();
-        wishlistItemsContainer.innerHTML = '';
+        wishlistItemsContainer.innerHTML = ''; // Clear loading message now that data is fetched
 
         if (wishlist.length === 0) {
             wishlistInitialMessage.textContent = 'Your wishlist is empty. Add some products from the Products page!';
@@ -1204,27 +1413,233 @@ async function loadWishlist() {
         console.error("Error in loadWishlist:", error);
         wishlistItemsContainer.innerHTML = '<p class="no-items-message">Error loading your wishlist.</p>';
         clearWishlistButton.style.display = 'none';
-        wishlistItemsContainer.appendChild(wishlistInitialMessage);
+        // Append initial message again in case it was removed
+        if (wishlistItemsContainer.querySelector('.no-items-message') === null) {
+             wishlistItemsContainer.appendChild(wishlistInitialMessage);
+        }
         showNotification("Error loading wishlist: " + error.message, "error", 5000);
     }
 }
 
+// --- MODIFIED: loadProfile to fetch and populate all profile data ---
 async function loadProfile() {
+    // Basic account info
     const profileEmailSpan = document.getElementById('profileEmail');
-    const displayNameInput = document.getElementById('displayNameInput');
+    const profileDisplayNameSpan = document.getElementById('profileDisplayName'); // Span for display name
 
-    if (!profileEmailSpan || !displayNameInput) {
-        console.warn("Profile elements not found for loading.");
+    // Personal Info inputs
+    const firstNameInput = document.getElementById('firstNameInput');
+    const lastNameInput = document.getElementById('lastNameInput');
+    const phoneInput = document.getElementById('phoneInput');
+    const addressInput = document.getElementById('addressInput');
+    const cityInput = document.getElementById('cityInput');
+    const stateInput = document.getElementById('stateInput');
+    const zipInput = document.getElementById('zipInput');
+    const countryInput = document.getElementById('countryInput');
+
+    // Preferences
+    const newsletterCheckbox = document.getElementById('newsletterCheckbox');
+
+    if (!profileEmailSpan || !profileDisplayNameSpan || !firstNameInput || !newsletterCheckbox) { // Check essential elements
+        console.warn("Profile page elements not fully loaded for profile data operations.");
+        // Attempt to load essential elements again if they weren't ready
+        document.addEventListener('DOMContentLoaded', loadProfile);
         return;
     }
 
     const user = auth.currentUser;
     if (user) {
         profileEmailSpan.textContent = user.email;
-        displayNameInput.value = user.displayName || '';
+        profileDisplayNameSpan.textContent = user.displayName || 'Not set';
+
+        const userDocRef = getUserProfileDocRef(); // Get the reference to the main user document in 'users' collection
+
+        try {
+            const docSnap = await getDoc(userDocRef);
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                // Populate personal info fields
+                firstNameInput.value = userData.firstName || '';
+                lastNameInput.value = userData.lastName || '';
+                phoneInput.value = userData.phone || '';
+                addressInput.value = userData.address || '';
+                cityInput.value = userData.city || '';
+                stateInput.value = userData.state || '';
+                zipInput.value = userData.zip || '';
+                countryInput.value = userData.country || '';
+
+                // Populate preferences
+                newsletterCheckbox.checked = userData.newsletterSubscription || false;
+            } else {
+                console.log("No custom profile data found for this user. Initializing fields.");
+                // Clear fields if no custom data exists
+                firstNameInput.value = '';
+                lastNameInput.value = '';
+                phoneInput.value = '';
+                addressInput.value = '';
+                cityInput.value = '';
+                stateInput.value = '';
+                zipInput.value = '';
+                countryInput.value = '';
+                newsletterCheckbox.checked = false;
+                // You might create an empty user document here if you want it to exist immediately upon profile visit
+                // setDoc(userDocRef, { email: user.email, displayName: user.displayName || '', createdAt: serverTimestamp() }, { merge: true });
+            }
+
+            // Load saved vehicles for the profile page
+            await loadProfileVehicles(user.uid);
+            // Load order history (placeholder for now)
+            loadOrderHistory(user.uid); // This function needs to be implemented
+
+        } catch (error) {
+            console.error("Error loading profile data:", error);
+            showNotification("Error loading profile data. Please try again.", "error");
+        }
+
     } else {
+        // Clear all profile display elements and inputs if no user is logged in
         profileEmailSpan.textContent = 'Not logged in';
-        displayNameInput.value = '';
+        profileDisplayNameSpan.textContent = 'Not set';
+        firstNameInput.value = '';
+        lastNameInput.value = '';
+        phoneInput.value = '';
+        addressInput.value = '';
+        cityInput.value = '';
+        stateInput.value = '';
+        zipInput.value = '';
+        countryInput.value = '';
+        newsletterCheckbox.checked = false;
+
+        // Clear vehicles and order history on profile page
+        if (profileSavedVehiclesList) {
+            profileSavedVehiclesList.innerHTML = '<p id="noProfileVehiclesMessage" class="no-items-message">Please log in to see your saved vehicles.</p>';
+        }
+        if (orderHistoryList) {
+            orderHistoryList.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
+        }
+        showNotification("Please log in to view your profile.", "info");
+    }
+}
+
+// --- NEW: Function to load and display vehicles on the profile page ---
+async function loadProfileVehicles(userId) {
+    const vehiclesListDiv = document.getElementById('profileSavedVehiclesList');
+    const noVehiclesMessage = document.getElementById('noProfileVehiclesMessage'); // New ID for consistency
+
+    if (!vehiclesListDiv || !noVehiclesMessage) {
+        console.warn("Profile vehicles display elements not found.");
+        return;
+    }
+
+    vehiclesListDiv.innerHTML = ''; // Clear previous content
+    noVehiclesMessage.textContent = 'Loading your saved vehicles...';
+    noVehiclesMessage.style.display = 'block';
+    vehiclesListDiv.appendChild(noVehiclesMessage);
+
+    const userVehiclesCollectionRef = collection(db, FIRESTORE_USERS_COLLECTION, userId, FIRESTORE_VEHICLES_FIELD);
+
+    try {
+        const querySnapshot = await getDocs(userVehiclesCollectionRef);
+        if (querySnapshot.empty) {
+            noVehiclesMessage.textContent = 'No vehicles saved yet. Go to My Garage to add one!';
+            noVehiclesMessage.style.display = 'block';
+            vehiclesListDiv.appendChild(noVehiclesMessage);
+            return;
+        }
+
+        vehiclesListDiv.innerHTML = ''; // Clear loading message
+        querySnapshot.forEach((docSnap) => {
+            const vehicle = docSnap.data();
+            const vehicleId = docSnap.id; // Get the Firestore document ID
+            const vehicleCard = document.createElement('div');
+            vehicleCard.className = 'vehicle-card-profile card'; // Use the new class and card style
+            vehicleCard.setAttribute('data-vehicle-id', vehicleId);
+            vehicleCard.innerHTML = `
+                <div class="vehicle-info">
+                    <h5>${vehicle.year} ${vehicle.make} ${vehicle.model}</h5>
+                    <p>Make: ${vehicle.make}</p>
+                    <p>Model: ${vehicle.model}</p>
+                    <p>Year: ${vehicle.year}</p>
+                </div>
+                <button class="delete-vehicle-btn-profile" data-vehicle-id="${vehicleId}">Remove</button>
+            `;
+            vehiclesListDiv.appendChild(vehicleCard);
+        });
+
+        // Attach event listeners for the "Remove" buttons on profile page vehicles
+        vehiclesListDiv.querySelectorAll('.delete-vehicle-btn-profile').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const idToDelete = e.target.dataset.vehicleId;
+                if (confirm('Are you sure you want to remove this vehicle from your garage?')) {
+                    const user = auth.currentUser;
+                    if (user) {
+                        try {
+                            // Call the existing deleteVehicle function (which works with Firestore IDs)
+                            await deleteVehicle(idToDelete, e.target);
+                            showNotification('Vehicle removed from your garage.', 'success');
+                            loadProfileVehicles(user.uid); // Reload profile's vehicle list
+                        } catch (error) {
+                            console.error('Error removing vehicle from profile:', error);
+                            showNotification('Failed to remove vehicle from profile.', 'error');
+                        }
+                    }
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("Error loading profile vehicles:", error);
+        noVehiclesMessage.textContent = 'Error loading your saved vehicles. Please try again.';
+        noVehiclesMessage.style.display = 'block';
+        vehiclesListDiv.appendChild(noVehiclesMessage);
+        showNotification("Error loading saved vehicles for profile: " + error.message, "error");
+    }
+}
+
+
+// --- NEW: Order History Placeholder Function ---
+function loadOrderHistory(userId) {
+    const orderListDiv = document.getElementById('orderHistoryList');
+    if (!orderListDiv) {
+        console.warn("Order history list element not found.");
+        return;
+    }
+    // This is a placeholder. In a real app, you'd fetch orders from Firestore
+    // For now, it just displays the static message from HTML
+    if (userId) {
+        orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
+        // Example of how you might fetch and render orders:
+        /*
+        const ordersCollectionRef = collection(db, 'orders'); // Assuming a top-level 'orders' collection
+        const q = query(ordersCollectionRef, where('userId', '==', userId), orderBy('timestamp', 'desc'));
+
+        getDocs(q).then(snapshot => {
+            if (snapshot.empty) {
+                orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
+                return;
+            }
+            orderListDiv.innerHTML = ''; // Clear message
+            snapshot.forEach(orderDoc => {
+                const order = orderDoc.data();
+                const orderCard = document.createElement('div');
+                orderCard.className = 'card order-card';
+                orderCard.innerHTML = `
+                    <h5>Order #${orderDoc.id.substring(0, 8)}</h5>
+                    <p>Date: ${order.timestamp ? new Date(order.timestamp.toDate()).toLocaleDateString() : 'N/A'}</p>
+                    <p>Total: $${order.total ? order.total.toFixed(2) : 'N/A'}</p>
+                    <p>Status: ${order.status || 'Processing'}</p>
+                    <button class="view-order-details-btn">View Details</button>
+                `;
+                orderListDiv.appendChild(orderCard);
+            });
+        }).catch(error => {
+            console.error("Error loading order history:", error);
+            orderListDiv.innerHTML = '<p class="no-items-message">Error loading order history.</p>';
+            showNotification("Error loading order history.", "error");
+        });
+        */
+    } else {
+        orderListDiv.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
     }
 }
 

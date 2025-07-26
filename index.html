@@ -37,7 +37,7 @@
 
   <main role="main">
     <section id="home" class="page active">
-      <div class="hero">
+      <div class="hero" style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('images/my-awesome-truck.jpeg');">
         <h1>Apex Auto Parts</h1>
         <p>Your Trusted Auto Parts Supplier</p>
         <button onclick="showPage('products')">Shop Now</button>
@@ -58,8 +58,8 @@
                data-product-name="Oil Filter" 
                data-product-price="12.99" 
                data-amazon-url="https://amzn.to/4f7A3tG" 
-               data-image-url="https://via.placeholder.com/100x100?text=Oil+Filter">
-            <img src="https://via.placeholder.com/100x100?text=Oil+Filter" alt="ACDelco Oil Filter">
+               data-image-url="images/oil-filter.webp">
+            <img src="images/oil-filter.webp" alt="ACDelco Oil Filter">
             <h4>Oil Filter</h4>
             <p>ACDelco – $12.99</p>
             <a href="https://amzn.to/4f7A3tG" target="_blank" rel="noopener noreferrer" aria-label="Buy ACDelco Oil Filter on Amazon">Buy on Amazon</a>
@@ -70,8 +70,8 @@
                data-product-name="Brake Pads" 
                data-product-price="89.99" 
                data-amazon-url="https://amzn.to/3GSGPGS" 
-               data-image-url="https://via.placeholder.com/100x100?text=Brake+Pads">
-            <img src="https://via.placeholder.com/100x100?text=Brake+Pads" alt="Wagner Brake Pads">
+               data-image-url="images/brake-pads.jpeg">
+            <img src="images/brake-pads.jpeg" alt="Wagner Brake Pads">
             <h4>Brake Pads</h4>
             <p>Wagner – $89.99</p>
             <a href="https://amzn.to/3GSGPGS" target="_blank" rel="noopener noreferrer" aria-label="Buy Wagner Brake Pads on Amazon">Buy on Amazon</a>
@@ -82,8 +82,8 @@
                data-product-name="Spark Plugs" 
                data-product-price="7.50" 
                data-amazon-url="https://amzn.to/4lXf1A0" 
-               data-image-url="https://via.placeholder.com/100x100?text=Spark+Plugs">
-            <img src="https://via.placeholder.com/100x100?text=Spark+Plugs" alt="NGK Spark Plugs">
+               data-image-url="images/spark-plugs.webp">
+            <img src="images/spark-plugs.webp" alt="NGK Spark Plugs">
             <h4>Spark Plugs</h4>
             <p>NGK – $7.50 each</p>
             <a href="https://amzn.to/4lXf1A0" target="_blank" rel="noopener noreferrer" aria-label="Buy NGK Spark Plugs on Amazon">Buy on Amazon</a>
@@ -93,8 +93,8 @@
                data-product-id="wiper-blades-bosch"
                data-product-name="Wiper Blades" 
                data-product-price="25.00" 
-               data-amazon-url="https://amzn.to/4lBWnOf" data-image-url="https://via.placeholder.com/100x100?text=Wiper+Blades">
-            <img src="https://via.placeholder.com/100x100?text=Wiper+Blades" alt="Bosch Icon Wiper Blades">
+               data-amazon-url="https://amzn.to/4lBWnOf" data-image-url="images/wiper-blades.jpeg">
+            <img src="images/wiper-blades.jpeg" alt="Bosch Icon Wiper Blades">
             <h4>Wiper Blades</h4>
             <p>Bosch Icon – $25.00</p>
             <a href="https://amzn.to/4lBWnOf" target="_blank" rel="noopener noreferrer" aria-label="Buy Bosch Icon Wiper Blades on Amazon">Buy on Amazon</a> <button class="add-to-wishlist-btn">Add to Wishlist</button>
@@ -146,16 +146,70 @@
             <div class="profile-info-card">
                 <h3>Account Information</h3>
                 <p><strong>Email:</strong> <span id="profileEmail">Not logged in</span></p>
+                <p><strong>Display Name:</strong> <span id="profileDisplayName">Not set</span></p>
 
                 <form id="updateProfileForm" style="margin-top: 2rem;">
-                    <h4>Update Basic Info</h4>
-                    <label for="displayNameInput">Display Name</label>
-                    <input type="text" id="displayNameInput" placeholder="Your Display Name" aria-describedby="displayNameError"/>
-                    <span id="displayNameError" class="error-message" aria-live="polite"></span>
-                    <button type="submit" id="saveProfileBtn">Save Profile</button>
+                    <h4>Update Personal Info</h4>
+                    <label for="firstNameInput">First Name</label>
+                    <input type="text" id="firstNameInput" placeholder="Your First Name" aria-describedby="firstNameError"/>
+                    <span id="firstNameError" class="error-message" aria-live="polite"></span>
+
+                    <label for="lastNameInput">Last Name</label>
+                    <input type="text" id="lastNameInput" placeholder="Your Last Name" aria-describedby="lastNameError"/>
+                    <span id="lastNameError" class="error-message" aria-live="polite"></span>
+
+                    <label for="phoneInput">Phone Number</label>
+                    <input type="tel" id="phoneInput" placeholder="(XXX) XXX-XXXX" aria-describedby="phoneError"/>
+                    <span id="phoneError" class="error-message" aria-live="polite"></span>
+
+                    <label for="addressInput">Street Address</label>
+                    <input type="text" id="addressInput" placeholder="123 Main St" aria-describedby="addressError"/>
+                    <span id="addressError" class="error-message" aria-live="polite"></span>
+
+                    <label for="cityInput">City</label>
+                    <input type="text" id="cityInput" placeholder="Anytown" aria-describedby="cityError"/>
+                    <span id="cityError" class="error-message" aria-live="polite"></span>
+
+                    <label for="stateInput">State / Province</label>
+                    <input type="text" id="stateInput" placeholder="CA" aria-describedby="stateError"/>
+                    <span id="stateError" class="error-message" aria-live="polite"></span>
+
+                    <label for="zipInput">Zip / Postal Code</label>
+                    <input type="text" id="zipInput" placeholder="12345" aria-describedby="zipError"/>
+                    <span id="zipError" class="error-message" aria-live="polite"></span>
+
+                    <label for="countryInput">Country</label>
+                    <input type="text" id="countryInput" placeholder="USA" aria-describedby="countryError"/>
+                    <span id="countryError" class="error-message" aria-live="polite"></span>
+
+                    <button type="submit" id="saveProfileBtn">Save Personal Info</button>
                 </form>
 
+                <form id="preferencesForm" style="margin-top: 2rem;">
+                    <h4>Communication Preferences</h4>
+                    <div class="form-checkbox-group">
+                        <input type="checkbox" id="newsletterCheckbox">
+                        <label for="newsletterCheckbox">Subscribe to Newsletter</label>
+                    </div>
+                    <button type="submit" id="savePreferencesBtn">Save Preferences</button>
+                </form>
+
+                <div id="orderHistorySection" style="margin-top: 3rem;">
+                    <h4>Order History</h4>
+                    <div id="orderHistoryList" class="grid">
+                        <p class="no-items-message">No past orders found. Start shopping today!</p>
+                        </div>
+                </div>
+
+                <div id="profileSavedVehiclesSection" style="margin-top: 3rem;">
+                    <h4>My Saved Vehicles</h4>
+                    <div id="profileSavedVehiclesList" class="grid">
+                        <p id="noProfileVehiclesMessage" class="no-items-message">No vehicles saved yet. Go to My Garage to add one!</p>
+                        </div>
+                </div>
+
                 <button id="changePasswordBtn" style="margin-top: 2rem;">Change Password</button>
+                <button id="deleteAccountBtn" class="delete-account-btn" style="margin-top: 1rem;">Delete Account</button>
             </div>
         </div>
     </section>
@@ -229,9 +283,9 @@
         <li><a href="#">Sitemap</a></li>
       </ul>
       <div class="social-media">
-        <a href="#" aria-label="Facebook"><img src="path/to/facebook-icon.png" alt="Facebook"></a>
-        <a href="#" aria-label="Instagram"><img src="path/to/instagram-icon.png" alt="Instagram"></a>
-        <a href="#" aria-label="Twitter"><img src="path/to/twitter-icon.png" alt="Twitter"></a>
+        <a href="#" aria-label="Facebook"><img src="images/facebook-icon.svg" alt="Facebook"></a>
+        <a href="#" aria-label="Instagram"><img src="images/instagram-icon.svg" alt="Instagram"></a>
+        <a href="#" aria-label="Twitter"><img src="images/twitter-icon.svg" alt="Twitter"></a>
       </div>
     </div>
   </footer>
