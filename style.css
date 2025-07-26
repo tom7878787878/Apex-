@@ -220,7 +220,8 @@ nav {
 
 /* --- Hero section styles --- */
 .hero {
-  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://source.unsplash.com/random/1600x600/?truck,suspension,road') center/cover no-repeat; /* Better placeholder image */
+  /* Corrected image path: Assumes hero.jpeg is in the same directory as style.css */
+  background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('hero.jpeg') center/cover no-repeat;
   color: var(--text-light);
   padding: 160px 20px; /* More vertical padding */
   text-align: center;
