@@ -238,7 +238,7 @@ function updateAuthStateUI(user, emailSpanElement) {
         if (document.querySelector('.page.active')?.id === 'auth') {
             showPage('home');
         }
-        clearAuthFields();
+        clearAuthFields(); // Clear fields after successful login/registration
 
         // --- NEW: Create initial user document in 'users' collection if it doesn't exist ---
         const userProfileDocRef = doc(db, FIRESTORE_USERS_COLLECTION, user.uid);
@@ -266,7 +266,6 @@ function updateAuthStateUI(user, emailSpanElement) {
         });
 
         // --- NEW: Create initial user garage/wishlist document in 'garages' collection if it doesn't exist ---
-        // This is for the structure where vehicles/wishlist are arrays directly in this document
         const userGarageDocRef = doc(db, FIRESTORE_GARAGES_COLLECTION, user.uid);
         getDoc(userGarageDocRef).then((docSnap) => {
             if (!docSnap.exists()) {
@@ -297,7 +296,7 @@ function updateAuthStateUI(user, emailSpanElement) {
             document.querySelector(".page.active")?.id === "profile") {
             showPage("auth");
         }
-        clearAuthFields();
+        clearAuthFields(); // Clear fields upon logout
         // Clear data displayed on user-specific sections upon logout
         renderSavedVehicles(); // Clears vehicles in Garage
         loadWishlist();       // Clears wishlist
@@ -425,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await signInWithEmailAndPassword(auth, loginEmailInput.value, loginPassInput.value);
                 showNotification("Login successful!", "success");
+                clearAuthFields(); // Clear fields on successful login
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
                 if (err.code === 'auth/invalid-email') {
@@ -477,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await createUserWithEmailAndPassword(auth, regEmailInput.value, regPassInput.value);
                 showNotification("Registered successfully!", "success");
+                clearAuthFields(); // Clear fields on successful registration
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
                 if (err.code === 'auth/invalid-email') {
@@ -518,6 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await signInWithPopup(auth, provider);
                 showNotification("Google login successful!", "success");
+                clearAuthFields(); // Clear fields on successful Google login
             } catch (err) {
                 if (err.code === 'auth/popup-closed-by-user') {
                     showNotification("Google login cancelled.", "info");
@@ -541,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await signOut(auth);
                 showNotification("Logged out successfully!", "info");
+                clearAuthFields(); // Clear fields on logout (though auth state change will also trigger this)
             } catch (err) {
                 showNotification("Logout error: " + err.message, "error", 5000);
             } finally {
@@ -646,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 // Get reference to the user's garage document where vehicles are stored as an array
-                const userGarageDocRef = getUserGarageDocRef();
+                const userGarageDocRef = getUserGarageDocRefForArrays();
                 if (!userGarageDocRef) { // Should not happen if user is logged in
                     showNotification("Error: Could not access user's garage document.", "error");
                     setButtonLoading(submitBtn, false);
@@ -663,10 +666,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const newVehicle = { make, model, year, createdAt: serverTimestamp() }; // Add timestamp
+                // Add createdAt timestamp to the vehicle object itself for easier array management
+                const newVehicle = { make, model, year, createdAt: Date.now() }; // Use Date.now() for unique timestamp in array
                 console.log("[Garage] Attempting to save new vehicle:", newVehicle);
 
-                // Prevent adding duplicate vehicles for better UX
+                // Prevent adding duplicate vehicles for better UX (checking against current fetched list)
                 const isDuplicate = vehicles.some(v => v.make === newVehicle.make && v.model === newVehicle.model && v.year === newVehicle.year);
                 if (isDuplicate) {
                     showNotification(`Vehicle "${year} ${make} ${model}" is already in your garage.`, "info");
@@ -915,8 +919,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("[Profile] User profile document deleted from 'users' collection.");
                 }
 
-                // Delete the user's garage document from 'garages' collection (which contains vehicles and wishlist)
-                const userGarageDocRef = getUserGarageDocRefForArrays(); // Using the specific ref for garages collection
+                // Delete the user's garage document from 'garages' collection (which contains vehicles and wishlist arrays)
+                const userGarageDocRef = getUserGarageDocRefForArrays();
                 if (userGarageDocRef) {
                     await deleteDoc(userGarageDocRef);
                     console.log("[Profile] User garage/wishlist document deleted from 'garages' collection.");
@@ -1127,7 +1131,8 @@ async function renderSavedVehicles() {
                         make: e.target.dataset.make,
                         model: e.target.dataset.model,
                         year: parseInt(e.target.dataset.year),
-                        createdAt: vehicles[parseInt(e.target.dataset.vehicle-index)].createdAt // Preserve original timestamp if it exists
+                        // Assuming 'createdAt' was added to the object in Firestore, retrieve it to match
+                        createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt
                     };
                     await deleteVehicleFromArray(vehicleToDelete, e.target); // Use new delete function for arrays
                 });
@@ -1203,15 +1208,15 @@ async function loadVehicleForProducts() {
                 v.model === selectedVehicleForSearch.model &&
                 v.year === selectedVehicleForSearch.year)
             ) {
-                selectedVehicleForSearch = vehicles[0]; // Default to the first vehicle
+                // IMPORTANT: When using arrays, you need a way to uniquely identify an item for selection.
+                // If 'createdAt' is unique enough, use that. Otherwise, you'll need to create a local unique ID.
+                // For now, defaulting to the first vehicle.
+                selectedVehicleForSearch = vehicles[0];
             }
 
             let vehicleOptionsHtml = vehicles.map((v, index) => `
-                <option value="${index}" ${ // Use index as value for selection
-                    (selectedVehicleForSearch &&
-                     v.make === selectedVehicleForSearch.make &&
-                     v.model === selectedVehicleForSearch.model &&
-                     v.year === selectedVehicleForSearch.year)
+                <option value="${index}" ${ // Use index as value for selection in the dropdown
+                    (selectedVehicleForSearch && vehicles.indexOf(selectedVehicleForSearch) === index) // Compare by index of current selected
                     ? 'selected' : ''
                 }>
                     ${v.year} ${v.make} ${v.model}
@@ -1255,8 +1260,8 @@ async function loadVehicleForProducts() {
 
             if (vehicleSelect) {
                 vehicleSelect.addEventListener('change', (event) => {
-                    const selectedIndex = parseInt(event.target.value); // Get index
-                    selectedVehicleForSearch = vehicles[selectedIndex]; // Use index to get object
+                    const selectedIndex = parseInt(event.target.value);
+                    selectedVehicleForSearch = vehicles[selectedIndex];
                     if (currentSearchVehicleSpan) {
                          currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
                     }
@@ -1301,6 +1306,7 @@ async function loadVehicleForProducts() {
     }
 }
 
+// --- NEW: Globally accessible search functions ---
 window.searchAmazonSpecific = function(year, make, model, partType) {
     const query = `${partType} ${year} ${make} ${model}`;
     const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
@@ -1333,11 +1339,14 @@ async function addToWishlist(product) {
         const userGarageDocSnap = await getDoc(userGarageDocRef);
         const currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
 
+        // Check if product already exists in wishlist using its 'id' field
         const exists = currentWishlist.some(item => item.id === product.id);
 
         if (!exists) {
+            // Add createdAt timestamp to the product object itself for easier array management
+            const productWithTimestamp = { ...product, addedAt: Date.now() };
             await updateDoc(userGarageDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: arrayUnion(product)
+                [FIRESTORE_WISHLIST_FIELD]: arrayUnion(productWithTimestamp)
             });
             showNotification(`${product.name} added to wishlist!`, "success");
             if (document.querySelector('.page.active')?.id === 'wishlist') {
@@ -1366,7 +1375,8 @@ async function removeFromWishlist(productId, button) {
         const userGarageDocSnap = await getDoc(userGarageDocRef);
         const currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
 
-        // Find the exact item to remove from the array
+        // Find the exact item to remove from the array by its 'id'
+        // IMPORTANT: We need the full object to use arrayRemove correctly.
         const itemToRemove = currentWishlist.find(item => item.id === productId);
 
         if (itemToRemove) {
@@ -1456,8 +1466,9 @@ async function loadProfile() {
     if (!profileEmailSpan || !profileDisplayNameSpan || !firstNameInput || !lastNameInput ||
         !phoneInput || !addressInput || !cityInput || !stateInput || !zipInput || !countryInput ||
         !newsletterCheckbox || !profileSavedVehiclesList || !orderHistoryList) {
-        console.warn("[Profile] Profile page elements not fully loaded or missing. Retrying after DOMContentLoaded if needed.");
+        console.warn("[Profile] Profile page DOM elements not fully loaded or missing. Retrying after DOMContentLoaded if needed.");
         // If this function is called too early, add a listener to retry once DOM is ready
+        // (This listener is for subsequent calls; onAuthStateChanged usually ensures DOM ready)
         document.addEventListener('DOMContentLoaded', loadProfile);
         return;
     }
@@ -1504,7 +1515,7 @@ async function loadProfile() {
             // Load saved vehicles specifically for the profile page display
             await loadProfileVehicles(user.uid);
             // Load order history (placeholder for now)
-            loadOrderHistory(user.uid);
+            loadOrderHistory(user.uid); // This function needs to be implemented
 
         } catch (error) {
             console.error("[Profile ERROR] Error loading profile data:", error);
@@ -1599,13 +1610,15 @@ async function loadProfileVehicles(userId) {
                     make: e.target.dataset.make,
                     model: e.target.dataset.model,
                     year: parseInt(e.target.dataset.year),
-                    // If you added createdAt timestamp to your vehicles, you need to include it here too:
-                    // createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt
+                    // IMPORTANT: If 'createdAt' was added to your vehicle object in Firestore,
+                    // you MUST include it here for arrayRemove to find the exact match.
+                    createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt
                 };
                 if (confirm('Are you sure you want to remove this vehicle from your garage?')) {
                     const user = auth.currentUser;
                     if (user) {
                         try {
+                            // Call the existing deleteVehicleFromArray function
                             await deleteVehicleFromArray(vehicleToDelete, e.target);
                             showNotification('Vehicle removed from your garage.', 'success');
                             loadProfileVehicles(user.uid); // Reload profile's vehicle list
@@ -1640,9 +1653,9 @@ function loadOrderHistory(userId) {
         orderListDiv.innerHTML = '<p class="no-items-message">Loading order history...</p>';
         console.log(`[Firestore] Attempting to load order history for user: ${userId}`);
 
-        /* This is an example for a top-level 'orders' collection.
-           If your orders are structured differently, you'll need to adapt this.
-        const ordersCollectionRef = collection(db, 'orders');
+        // If you're ready to implement actual order history:
+        /*
+        const ordersCollectionRef = collection(db, 'orders'); // Assuming 'orders' is a top-level collection
         const q = query(ordersCollectionRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
 
         getDocs(q).then(snapshot => {
