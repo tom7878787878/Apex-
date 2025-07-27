@@ -47,11 +47,14 @@ let passwordStrengthIndicator;
 
 // --- Garage Form Elements (assigned in DOMContentLoaded) ---
 let garageForm;
-let makeInput;
-let modelInput;
-let yearInput;
+// REMOVED: makeInput; modelInput; yearInput; (these are now select elements)
 let savedVehiclesContainer;
 let noVehiclesMessage;
+
+// NEW: New select elements for vehicle API integration
+let makeSelect;
+let modelSelect;
+let yearSelect;
 
 // --- Wishlist Elements (assigned in DOMContentLoaded) ---
 let featuredProductsGrid;
@@ -117,6 +120,7 @@ window.showPage = function(id) {
         loadVehicleForProducts();
     } else if (id === 'garage') {
         renderSavedVehicles();
+        fetchMakes(); // NEW: Call fetchMakes when Garage page is shown
     } else if (id === 'wishlist') {
         loadWishlist();
     } else if (id === 'profile') {
@@ -338,11 +342,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Garage Form Elements
     garageForm = document.getElementById('garageForm');
-    makeInput = document.getElementById("make");
-    modelInput = document.getElementById("model");
-    yearInput = document.getElementById("year");
+    // makeInput = document.getElementById("make"); // REMOVED
+    // modelInput = document.getElementById("model"); // REMOVED
+    // yearInput = document.getElementById("year"); // REMOVED
     savedVehiclesContainer = document.getElementById('savedVehicles');
     noVehiclesMessage = document.getElementById('noVehiclesMessage');
+
+    // NEW: Assign the new select elements
+    makeSelect = document.getElementById('makeSelect');
+    modelSelect = document.getElementById('modelSelect');
+    yearSelect = document.getElementById('yearSelect');
+
 
     // Assign Wishlist Elements
     featuredProductsGrid = document.getElementById('featuredProductsGrid');
@@ -613,7 +623,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- My Garage Section (Firebase) ---
-    if (garageForm && makeInput && modelInput && yearInput && savedVehiclesContainer && noVehiclesMessage) {
+    // NEW: Update garageForm event listener to use select elements and new validation
+    if (garageForm && makeSelect && modelSelect && yearSelect && savedVehiclesContainer && noVehiclesMessage) {
         garageForm.addEventListener('submit', async (e) => {
             console.log("[Garage] Form submitted.");
             e.preventDefault();
@@ -629,14 +640,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const make = makeInput.value.trim();
-            const model = modelInput.value.trim();
-            const year = parseInt(yearInput.value);
+            // NEW: Get values from select dropdowns
+            const make = makeSelect.value;
+            const model = modelSelect.value;
+            const year = parseInt(yearSelect.value); // Ensure year is parsed as int
 
             let isValid = true;
-            if (!make) { displayFormError('makeError', 'Make is required.'); isValid = false; }
-            if (!model) { displayFormError('modelError', 'Model is required.'); isValid = false; }
-            if (isNaN(year) || year < 1900 || year > 2100) { displayFormError('yearError', 'Please enter a valid year (e.g., 2023).'); isValid = false; }
+            // NEW: Updated validation for dropdowns
+            if (!make) { displayFormError('makeError', 'Please select a Make.'); isValid = false; }
+            if (!model) { displayFormError('modelError', 'Please select a Model.'); isValid = false; }
+            if (isNaN(year) || !year) { displayFormError('yearError', 'Please select a Year.'); isValid = false; } // Simplified year check
 
             if (!isValid) {
                 console.log("[Garage] Validation failed.");
@@ -679,12 +692,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Prevent adding duplicate vehicles (based on make, model, year)
+                // Prevent adding duplicate vehicles (based on make, model, year, and createdAt if possible)
                 const isDuplicate = vehicles.some(v => v.make === newVehicle.make && v.model === newVehicle.model && v.year === newVehicle.year);
                 if (isDuplicate) {
                     showNotification(`Vehicle "${year} ${make} ${model}" is already in your garage.`, "info");
                     setButtonLoading(submitBtn, false);
-                    garageForm.reset();
+                    // garageForm.reset(); // Don't reset if it's a duplicate, let user see existing selections
                     return;
                 }
 
@@ -703,7 +716,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, "success");
-                garageForm.reset();
+                // NEW: Reset dropdowns and re-enable appropriate states
+                makeSelect.value = '';
+                modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
+                modelSelect.disabled = true;
+                yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+                yearSelect.disabled = true;
+
                 setTimeout(async () => {
                     await renderSavedVehicles();
                     await loadVehicleForProducts();
@@ -718,6 +737,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("[Garage] Finally block executed, loading state removed.");
             }
         });
+
+        // NEW: Event Listeners for the new dropdowns
+        makeSelect.addEventListener('change', () => {
+            const selectedMake = makeSelect.value;
+            fetchModelsByMake(selectedMake);
+        });
+
+        modelSelect.addEventListener('change', () => {
+            const selectedModel = modelSelect.value;
+            if (selectedModel) {
+                populateYears();
+            } else {
+                yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+                yearSelect.disabled = true;
+            }
+        });
+
     } else { console.warn("[DOM] Garage form or its elements not found."); }
 
 
@@ -1037,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial page load
-    showPage('home');
+    showPage('home'); // This will trigger fetchMakes for the garage page implicitly
 });
 
 // --- Helper Functions (defined outside DOMContentLoaded so they are globally accessible) ---
@@ -1130,6 +1166,7 @@ async function renderSavedVehicles() {
                             data-make="${vehicle.make}"
                             data-model="${vehicle.model}"
                             data-year="${vehicle.year}"
+                            data-created-at="${vehicle.createdAt}"
                             aria-label="Delete ${vehicle.year} ${vehicle.make} ${vehicle.model}">Delete</button>
                 `;
                 savedVehiclesContainer.appendChild(vehicleCard);
@@ -1142,7 +1179,7 @@ async function renderSavedVehicles() {
                         make: e.target.dataset.make,
                         model: e.target.dataset.model,
                         year: parseInt(e.target.dataset.year),
-                        createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt // Crucial for arrayRemove to match exactly
+                        createdAt: parseInt(e.target.dataset.createdAt) // Crucial for arrayRemove to match exactly
                     };
                     await deleteVehicleFromArray(vehicleToDelete, e.target);
                 });
@@ -1186,6 +1223,129 @@ async function deleteVehicleFromArray(vehicleToDelete, button) {
 }
 
 
+// --- NEW SECTION: Vehicle API Integration (NHTSA API) ---
+
+const NHTSA_API_BASE_URL = 'https://vpic.nhtsa.dot.gov/api/vehicles';
+
+/**
+ * Fetches vehicle makes from the NHTSA API and populates the makeSelect dropdown.
+ */
+async function fetchMakes() {
+    if (!makeSelect) {
+        console.warn("[API] Make select element not found.");
+        return;
+    }
+    makeSelect.innerHTML = '<option value="">-- Loading Makes... --</option>';
+    makeSelect.disabled = true; // Disable while loading
+
+    try {
+        const response = await fetch(`${NHTSA_API_BASE_URL}/GetAllMakes?format=json`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const makes = data.Results; // Array of { Make_ID, Make_Name }
+
+        // Clear existing options
+        makeSelect.innerHTML = '<option value="">-- Select Make --</option>';
+        makes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name)); // Sort alphabetically
+        makes.forEach(make => {
+            const option = document.createElement('option');
+            option.value = make.Make_Name;
+            option.textContent = make.Make_Name;
+            makeSelect.appendChild(option);
+        });
+        makeSelect.disabled = false; // Enable make selection
+    } catch (error) {
+        console.error('Error fetching makes:', error);
+        showNotification('Failed to load vehicle makes. Please try again later.', 'error');
+        makeSelect.innerHTML = '<option value="">-- Error Loading Makes --</option>';
+        makeSelect.disabled = true; // Keep disabled on error
+    }
+}
+
+/**
+ * Fetches models for a given make from the NHTSA API and populates the modelSelect dropdown.
+ * @param {string} makeName - The name of the selected vehicle make.
+ */
+async function fetchModelsByMake(makeName) {
+    if (!modelSelect || !yearSelect) {
+        console.warn("[API] Model or Year select elements not found.");
+        return;
+    }
+    modelSelect.innerHTML = '<option value="">-- Loading Models... --</option>';
+    modelSelect.disabled = true;
+    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+    yearSelect.disabled = true;
+
+    if (!makeName) { // If no make is selected, reset models and years
+        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
+        modelSelect.disabled = true;
+        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+        yearSelect.disabled = true;
+        return;
+    }
+
+    try {
+        // Encode makeName for URL
+        const encodedMakeName = encodeURIComponent(makeName);
+        const response = await fetch(`${NHTSA_API_BASE_URL}/GetModelsForMake/${encodedMakeName}?format=json`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const models = data.Results; // Array of { Model_ID, Model_Name }
+
+        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
+        if (models && models.length > 0) {
+            models.sort((a, b) => a.Model_Name.localeCompare(b.Model_Name)); // Sort alphabetically
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.Model_Name;
+                option.textContent = model.Model_Name;
+                modelSelect.appendChild(option);
+            });
+            modelSelect.disabled = false; // Enable model selection
+        } else {
+            showNotification(`No models found for ${makeName}.`, 'info');
+            modelSelect.innerHTML = '<option value="">-- No Models Found --</option>';
+            modelSelect.disabled = true;
+        }
+        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+        yearSelect.disabled = true; // Disable year until model is chosen
+    } catch (error) {
+        console.error('Error fetching models:', error);
+        showNotification(`Failed to load models for ${makeName}. Please try again.`, 'error');
+        modelSelect.innerHTML = '<option value="">-- Error Loading Models --</option>';
+        modelSelect.disabled = true;
+        yearSelect.disabled = true;
+    }
+}
+
+/**
+ * Populates the yearSelect dropdown with a reasonable range of years.
+ * NHTSA API doesn't provide years directly for make/model, so we generate a range.
+ */
+function populateYears() {
+    if (!yearSelect) {
+        console.warn("[API] Year select element not found.");
+        return;
+    }
+    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+    const currentYear = new Date().getFullYear();
+    // Go back 30 years and up to next year for new models
+    for (let year = currentYear + 1; year >= currentYear - 30; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+    }
+    yearSelect.disabled = false; // Enable year selection
+}
+
+// --- END NEW SECTION: Vehicle API Integration ---
+
+
 // Loads vehicle data for the Products page's search and filtering options
 async function loadVehicleForProducts() {
     const productContentDiv = document.getElementById('productContent');
@@ -1212,6 +1372,7 @@ async function loadVehicleForProducts() {
         const vehicles = await getSavedVehiclesFromFirestore();
 
         if (vehicles.length > 0) {
+            // Select the first vehicle by default if none is selected or if selected vehicle was removed
             if (!selectedVehicleForSearch || !vehicles.some(v =>
                 v.make === selectedVehicleForSearch.make &&
                 v.model === selectedVehicleForSearch.model &&
