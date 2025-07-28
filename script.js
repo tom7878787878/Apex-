@@ -25,6 +25,15 @@ export const db = getFirestore(app); // Export db for potential future modules
 // Amazon Affiliate Tag
 const amazonTag = "everythi09e02-20";
 
+// NEW: Combined whitelist for makes (cars and motorcycles)
+const VALID_MAKES_WHITELIST = [
+    "Ford", "Chevrolet", "Dodge", "Oldsmobile", "Alfa Romeo", "Subaru", "Kia", "Honda",
+    "Toyota", "Nissan", "Isuzu", "Mazda", "Mitsubishi", "Hyundai",
+    // Motorcycles
+    "Harley-Davidson", "Kawasaki", "Ducati", "Buell"
+];
+
+
 // --- Global DOM Elements (assigned in DOMContentLoaded) ---
 let navLinks;
 let hamburgerMenu;
@@ -342,9 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Garage Form Elements
     garageForm = document.getElementById('garageForm');
-    // makeInput = document.getElementById("make"); // REMOVED
-    // modelInput = document.getElementById("model"); // REMOVED
-    // yearInput = document.getElementById("year"); // REMOVED
+    // REMOVED: makeInput; modelInput; yearInput; (these are now select elements)
     savedVehiclesContainer = document.getElementById('savedVehicles');
     noVehiclesMessage = document.getElementById('noVehiclesMessage');
 
@@ -1229,7 +1236,8 @@ async function deleteVehicleFromArray(vehicleToDelete, button) {
 const NHTSA_API_BASE_URL = 'https://vpic.nhtsa.dot.gov/api/vehicles';
 
 /**
- * Fetches vehicle makes from the NHTSA API and populates the makeSelect dropdown.
+ * Fetches vehicle makes from the NHTSA API, filters them by a predefined whitelist,
+ * and populates the makeSelect dropdown.
  */
 async function fetchMakes() {
     if (!makeSelect) {
@@ -1247,35 +1255,33 @@ async function fetchMakes() {
         const data = await response.json();
         const makes = data.Results; // Array of { Make_ID, Make_Name }
 
-        // Filter for common automobile makes
-        // This list can be expanded or modified based on your needs.
-        // I've included a comprehensive list for common cars/trucks/SUVs.
-        const automobileMakesWhitelist = [
-            "Acura", "Alfa Romeo", "Audi", "BMW", "Buick", "Cadillac", "Chevrolet", "Chrysler",
-            "Dodge", "Fiat", "Ford", "Genesis", "GMC", "Honda", "Hyundai", "Infiniti", "Jaguar",
-            "Jeep", "Kia", "Land Rover", "Lexus", "Lincoln", "Lucid", "Maserati", "Mazda",
-            "McLaren", "Mercedes-Benz", "Mini", "Mitsubishi", "Nissan", "Polestar", "Porsche",
-            "Ram", "Rivian", "Rolls-Royce", "Subaru", "Suzuki", "Tesla", "Toyota", "Volkswagen", "Volvo",
-            // Add other makes as needed if they are exclusively automobiles (cars, trucks, SUVs)
-        ];
-
+        // Filter the fetched makes using the VALID_MAKES_WHITELIST
         const filteredMakes = makes.filter(make =>
-            automobileMakesWhitelist.includes(make.Make_Name)
+            VALID_MAKES_WHITELIST.some(allowedMake =>
+                make.Make_Name.toLowerCase() === allowedMake.toLowerCase()
+            )
         );
-
 
         // Clear existing options
         makeSelect.innerHTML = '<option value="">-- Select Make --</option>';
-        filteredMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name)); // Sort alphabetically
-        filteredMakes.forEach(make => {
-            const option = document.createElement('option');
-            option.value = make.Make_Name;
-            option.textContent = make.Make_Name;
-            makeSelect.appendChild(option);
-        });
-        makeSelect.disabled = false; // Enable make selection
+        if (filteredMakes.length > 0) {
+            // Sort the filtered makes alphabetically by name
+            filteredMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name));
+            filteredMakes.forEach(make => {
+                const option = document.createElement('option');
+                option.value = make.Make_Name;
+                option.textContent = make.Make_Name;
+                makeSelect.appendChild(option);
+            });
+            makeSelect.disabled = false; // Enable make selection
+        } else {
+            showNotification('No matching makes found based on your filter list.', 'info');
+            makeSelect.innerHTML = '<option value="">-- No Makes Found --</option>';
+            makeSelect.disabled = true;
+        }
+
     } catch (error) {
-        console.error('Error fetching makes:', error);
+        console.error('Error fetching and filtering makes:', error);
         showNotification('Failed to load vehicle makes. Please try again later.', 'error');
         makeSelect.innerHTML = '<option value="">-- Error Loading Makes --</option>';
         makeSelect.disabled = true; // Keep disabled on error
