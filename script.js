@@ -1002,8 +1002,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     showNotification("User mismatch. Please ensure you are logged in with the correct account.", "error");
                 }
                 else {
-                    showNotification(`Account deletion failed: ${error.message}`, "error", 7000);
+                    errorMessage = error.message;
                 }
+                showNotification(`Account deletion failed: ${errorMessage}`, "error", 7000);
             } finally {
                 setButtonLoading(deleteAccountBtn, false);
             }
@@ -1179,7 +1180,7 @@ async function renderSavedVehicles() {
                         make: e.target.dataset.make,
                         model: e.target.dataset.model,
                         year: parseInt(e.target.dataset.year),
-                        createdAt: parseInt(e.target.dataset.createdAt) // Crucial for arrayRemove to match exactly
+                        createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt // Crucial for arrayRemove to match exactly
                     };
                     await deleteVehicleFromArray(vehicleToDelete, e.target);
                 });
@@ -1246,10 +1247,27 @@ async function fetchMakes() {
         const data = await response.json();
         const makes = data.Results; // Array of { Make_ID, Make_Name }
 
+        // Filter for common automobile makes
+        // This list can be expanded or modified based on your needs.
+        // I've included a comprehensive list for common cars/trucks/SUVs.
+        const automobileMakesWhitelist = [
+            "Acura", "Alfa Romeo", "Audi", "BMW", "Buick", "Cadillac", "Chevrolet", "Chrysler",
+            "Dodge", "Fiat", "Ford", "Genesis", "GMC", "Honda", "Hyundai", "Infiniti", "Jaguar",
+            "Jeep", "Kia", "Land Rover", "Lexus", "Lincoln", "Lucid", "Maserati", "Mazda",
+            "McLaren", "Mercedes-Benz", "Mini", "Mitsubishi", "Nissan", "Polestar", "Porsche",
+            "Ram", "Rivian", "Rolls-Royce", "Subaru", "Suzuki", "Tesla", "Toyota", "Volkswagen", "Volvo",
+            // Add other makes as needed if they are exclusively automobiles (cars, trucks, SUVs)
+        ];
+
+        const filteredMakes = makes.filter(make =>
+            automobileMakesWhitelist.includes(make.Make_Name)
+        );
+
+
         // Clear existing options
         makeSelect.innerHTML = '<option value="">-- Select Make --</option>';
-        makes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name)); // Sort alphabetically
-        makes.forEach(make => {
+        filteredMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name)); // Sort alphabetically
+        filteredMakes.forEach(make => {
             const option = document.createElement('option');
             option.value = make.Make_Name;
             option.textContent = make.Make_Name;
