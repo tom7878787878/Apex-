@@ -65,6 +65,11 @@ let makeSelect;
 let modelSelect;
 let yearSelect;
 
+// NEW: Elements for adding by Tag Number (VIN)
+let vinInput; // Assuming 'tag number' will be a VIN for API lookup
+let addVinButton;
+let vinLookupMessage; // For displaying loading/error messages for VIN lookup
+
 // --- Wishlist Elements (assigned in DOMContentLoaded) ---
 let featuredProductsGrid;
 let wishlistItemsContainer;
@@ -359,6 +364,11 @@ document.addEventListener('DOMContentLoaded', () => {
     makeSelect = document.getElementById('makeSelect');
     modelSelect = document.getElementById('modelSelect');
     yearSelect = document.getElementById('yearSelect');
+
+    // NEW: Assign elements for adding by Tag Number (VIN)
+    vinInput = document.getElementById('vinInput');
+    addVinButton = document.getElementById('addVinButton');
+    vinLookupMessage = document.getElementById('vinLookupMessage'); // A span or div to show lookup status
 
 
     // Assign Wishlist Elements
@@ -762,6 +772,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     } else { console.warn("[DOM] Garage form or its elements not found."); }
+
+    // NEW: Event Listener for Add by VIN Button
+    if (addVinButton && vinInput) {
+        addVinButton.addEventListener('click', async () => {
+            console.log("[Garage] Add by VIN button clicked.");
+            const vin = vinInput.value.trim().toUpperCase(); // Convert to uppercase for VIN consistency
+            clearFormErrors('vinInputError'); // Clear VIN-specific error
+            if (vinLookupMessage) vinLookupMessage.textContent = ''; // Clear previous VIN message
+
+            if (!vin) {
+                showNotification("Please enter a VIN to look up vehicle details.", "error");
+                displayFormError('vinInputError', 'VIN is required.');
+                return;
+            }
+            // Basic VIN length and character validation (VINs exclude I, O, Q)
+            const vinPattern = /^[A-HJ-NPR-Z0-9]{17}$/;
+            if (vin.length !== 17 || !vinPattern.test(vin)) {
+                showNotification("Please enter a valid 17-character VIN.", "error");
+                displayFormError('vinInputError', 'Invalid VIN format or length (must be 17 characters, no I, O, Q).');
+                return;
+            }
+
+            setButtonLoading(addVinButton, true);
+            if (vinLookupMessage) vinLookupMessage.textContent = 'Looking up VIN...';
+
+            try {
+                const vehicleDetails = await fetchVehicleDetailsByVin(vin);
+                if (vehicleDetails) {
+                    showNotification(`Vehicle details found: ${vehicleDetails.year} ${vehicleDetails.make} ${vehicleDetails.model}`, 'success', 5000);
+                    if (vinLookupMessage) vinLookupMessage.textContent = `Found: ${vehicleDetails.year} ${vehicleDetails.make} ${vehicleDetails.model}`;
+
+                    // Automatically populate the dropdowns with found details
+                    if (makeSelect) makeSelect.value = vehicleDetails.make;
+                    // For model and year, we need to ensure the dropdowns are populated with options first
+                    if (modelSelect) {
+                         // Await fetching models for the make before setting the value
+                         await fetchModelsByMake(vehicleDetails.make);
+                         modelSelect.value = vehicleDetails.model;
+                    }
+                    if (yearSelect) {
+                        populateYears(); // Ensure years are populated
+                        yearSelect.value = vehicleDetails.year;
+                    }
+
+                    vinInput.value = ''; // Clear VIN input after successful lookup
+
+                } else {
+                    showNotification("Could not find details for that VIN. Please check the number or try manual entry.", "error", 7000);
+                    if (vinLookupMessage) vinLookupMessage.textContent = 'No details found.';
+                    displayFormError('vinInputError', 'VIN not found or invalid.');
+                }
+            } catch (error) {
+                console.error("[VIN Lookup ERROR]", error);
+                showNotification("Error looking up VIN: " + error.message, "error", 7000);
+                if (vinLookupMessage) vinLookupMessage.textContent = 'Error during lookup.';
+                displayFormError('vinInputError', 'Error during VIN lookup.');
+            } finally {
+                setButtonLoading(addVinButton, false);
+            }
+        });
+    } else { console.warn("[DOM] Add VIN button or input not found."); }
 
 
     // Wishlist Buttons (Event Listener for General Featured Products)
@@ -1365,6 +1436,61 @@ function populateYears() {
         yearSelect.appendChild(option);
     }
     yearSelect.disabled = false; // Enable year selection
+}
+
+/**
+ * Fetches vehicle details from the NHTSA API using a VIN.
+ * @param {string} vin - The Vehicle Identification Number (must be 17 characters).
+ * @returns {object|null} An object with make, model, year, or null if not found/error.
+ */
+async function fetchVehicleDetailsByVin(vin) {
+    // NHTSA VIN Decoding endpoint
+    const url = `${NHTSA_API_BASE_URL}/DecodeVin/${encodeURIComponent(vin)}?format=json`;
+    console.log(`[API] Fetching VIN details for: ${vin}`);
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        // Check for specific error codes or if Results is not populated correctly
+        if (data.Errors && data.Errors.length > 0) {
+            console.error("[API] NHTSA VIN Decode API returned errors:", data.Errors.map(e => e.Message).join(", "));
+            // Look for a specific error indicating invalid VIN or no data
+            if (data.Errors.some(e => e.Message.includes("Invalid VIN") || e.Message.includes("Not Found"))) {
+                 return null; // Treat as not found for a clean user message
+            }
+            throw new Error(data.Errors.map(e => e.Message).join(", ")); // Re-throw generic errors
+        }
+
+        if (data.Results && data.Results.length > 0) {
+            const results = data.Results;
+            const makeEntry = results.find(item => item.Variable === "Make");
+            const modelEntry = results.find(item => item.Variable === "Model");
+            const modelYearEntry = results.find(item => item.Variable === "Model Year");
+
+            const make = makeEntry ? makeEntry.Value : null;
+            const model = modelEntry ? modelEntry.Value : null;
+            const year = modelYearEntry ? parseInt(modelYearEntry.Value) : null;
+
+            if (make && model && year) {
+                console.log(`[API] VIN lookup successful: ${year} ${make} ${model}`);
+                return { make, model, year };
+            } else {
+                console.warn("[API] Partial VIN details found or missing key info:", { make, model, year, results });
+                // If essential details (make, model, year) are missing, consider it not found
+                return null;
+            }
+        } else {
+            console.warn("[API] No results found for VIN:", vin);
+            return null;
+        }
+    } catch (error) {
+        console.error(`[API ERROR] Error decoding VIN ${vin}:`, error);
+        throw error; // Re-throw to be caught by the calling event listener
+    }
 }
 
 // --- END NEW SECTION: Vehicle API Integration ---

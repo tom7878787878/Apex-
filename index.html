@@ -116,8 +116,20 @@
             <option value="">-- Select Year --</option>
           </select>
           <span id="yearError" class="error-message" aria-live="polite"></span>
+          
           <button type="submit">Save Vehicle</button>
         </form>
+
+        <hr style="margin: 20px 0; border-color: var(--color-border);" /> <div class="vin-lookup-section">
+            <h4>Or Look Up by VIN (Vehicle Identification Number)</h4>
+            <div class="form-group">
+                <label for="vinInput">VIN:</label>
+                <input type="text" id="vinInput" placeholder="Enter 17-character VIN" maxlength="17" pattern="[A-HJ-NPR-Z0-9]{17}" title="Please enter a valid 17-character VIN (excluding I, O, Q)" />
+                <span class="error-message" id="vinInputError"></span>
+            </div>
+            <button type="button" id="addVinButton" class="btn btn-secondary">Look Up Vehicle by VIN</button>
+            <div id="vinLookupMessage" class="info-message" style="margin-top: 10px;"></div>
+        </div>
         
         <h3>My Saved Vehicles</h3>
         <div id="savedVehicles" class="grid">
