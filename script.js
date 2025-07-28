@@ -550,7 +550,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (err.code === 'auth/cancelled-popup-request') {
                     showNotification("Login attempt already in progress.", "info");
                 } else {
-                    showNotification("Google login error: " + err.message, "error", 5000);
+                    errorMessage = err.message; // Ensure errorMessage is defined
+                    showNotification("Google login error: " + errorMessage, "error", 5000);
                 }
             } finally {
                 setButtonLoading(googleLoginBtn, false);
@@ -725,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
                 yearSelect.disabled = true;
 
-                // NEW: Wait for Firestore update to reflect, then re-render
+                // Wait for Firestore update to reflect, then re-render
                 setTimeout(async () => {
                     await renderSavedVehicles();
                     await loadVehicleForProducts();
@@ -1474,4 +1475,179 @@ async function loadVehicleForProducts() {
                     <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
                 </div>
             `;
-             showNotification("No vehicle saved. Please add one in My Garage!", "info",
+             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
+        }
+    } catch (err) {
+        console.error("[Product ERROR] Error loading vehicle for products page:", err);
+        productContentDiv.innerHTML = `
+            <div class="no-vehicle-message">
+                <h3>Error Loading Vehicle</h3>
+                <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
+            </div>
+        `;
+        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
+    }
+}
+
+// --- NEW: Globally accessible search functions ---
+window.searchAmazonSpecific = function(year, make, model, partType) {
+    const query = `${partType} ${year} ${make} ${model}`;
+    const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+    window.open(url, "_blank");
+}
+
+window.searchAmazonGeneral = function(year, make, model) {
+    const searchInput = document.getElementById('generalProductSearch');
+    let query = searchInput.value.trim();
+
+    if (query) {
+        query = `${query} ${year} ${make} ${model}`;
+        const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+        window.open(url, "_blank");
+        searchInput.value = '';
+    } else {
+        showNotification("Please enter a search term.", "info");
+    }
+}
+
+// Adds a product to the 'wishlist' array field within the garage document
+async function addToWishlist(product) {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        showNotification("Please log in to add items to your wishlist.", "error");
+        return;
+    }
+
+    try {
+        const userGarageDocSnap = await getDoc(userGarageDocRef);
+        let currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
+
+        // Check if product already exists in wishlist using its 'id' field
+        const exists = currentWishlist.some(item => item.id === product.id);
+
+        if (!exists) {
+            const productWithTimestamp = { ...product, addedAt: Date.now() };
+
+            if (!userGarageDocSnap.exists()) {
+                // If garage document doesn't exist, create it with this first wishlist item
+                await setDoc(userGarageDocRef, {
+                    [FIRESTORE_WISHLIST_FIELD]: [productWithTimestamp],
+                    [FIRESTORE_VEHICLES_FIELD]: [], // Also initialize vehicles field as empty array
+                    createdAt: serverTimestamp() // Add document creation timestamp
+                });
+            } else {
+                // If garage document exists, just update the wishlist array
+                await updateDoc(userGarageDocRef, {
+                    [FIRESTORE_WISHLIST_FIELD]: arrayUnion(productWithTimestamp)
+                });
+            }
+            showNotification(`${product.name} added to wishlist!`, "success");
+            loadWishlist(); // Always reload the wishlist display after adding an item
+        } else {
+            showNotification(`${product.name} is already in your wishlist.`, "info");
+        }
+    } catch (error) {
+        console.error("[Wishlist ERROR] Error adding to wishlist:", error);
+        showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
+    }
+}
+
+// Removes a product from the 'wishlist' array field within the garage document
+async function removeFromWishlist(productId, button) {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        showNotification("Please log in to manage your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        const userGarageDocSnap = await getDoc(userGarageDocRef);
+        const currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
+
+        // Find the exact item to remove from the array by its 'id'
+        const itemToRemove = currentWishlist.find(item => item.id === productId);
+
+        if (itemToRemove) {
+            await updateDoc(userGarageDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove)
+            });
+            showNotification("Product removed from wishlist.", "info");
+            loadWishlist(); // Always reload the wishlist display after removing
+        } else {
+            showNotification("Product not found in wishlist (already removed?).", "info");
+        }
+    } catch (error) {
+        console.error("[Wishlist ERROR] Error removing from wishlist:", error);
+        showNotification("Failed to remove product from wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+// Clears all items from the 'wishlist' array field within the garage document
+async function clearWishlist(button) {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        showNotification("Please log in to clear your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        // We only clear if the document exists. If it's empty, there's nothing to clear.
+        const userGarageDocSnap = await getDoc(userGarageDocRef);
+        if (userGarageDocSnap.exists()) {
+            await updateDoc(userGarageDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: []
+            });
+            showNotification("Wishlist cleared!", "info");
+        } else {
+            showNotification("Your wishlist is already empty.", "info");
+        }
+        loadWishlist(); // Always reload the wishlist display after clearing
+    } catch (error) {
+        console.error("[Wishlist ERROR] Error clearing wishlist:", error);
+        showNotification("Failed to clear wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+// Fetches wishlist items from the user's dedicated 'garages' document (as an array field)
+async function getWishlistFromFirestore() {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        console.log("[Firestore] getWishlistFromFirestore: Not logged in, returning empty array.");
+        return [];
+    }
+
+    try {
+        const docSnap = await getDoc(userGarageDocRef);
+        if (docSnap.exists()) {
+            return docSnap.data()[FIRESTORE_WISHLIST_FIELD] || [];
+        }
+        return [];
+    } catch (error) {
+        console.error("[Firestore ERROR] Error getting wishlist from Firestore:", error);
+        showNotification("Error loading wishlist.", "error");
+        return [];
+    }
+}
+
+// NEW: Refactored loadWishlist function for clearer rendering logic
+async function loadWishlist() {
+    const wishlistItemsContainer = document.getElementById('wishlistItems');
+    const clearWishlistButton = document.getElementById('clearWishlistBtn');
+
+    if (!wishlistItemsContainer || !clearWishlistButton) {
+        console.warn("[DOM] Wishlist display elements not found (loadWishlist).");
+        return;
+    }
+
+    wishlistItemsContainer.innerHTML = '<p class="no-items-message">Loading wishlist...</p>';
+    clearWishlistButton.style.display = 'none'; // Hide clear button by default
+
+    if (!auth.currentUser) {
