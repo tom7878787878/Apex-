@@ -10,6 +10,8 @@ const firebaseConfig = {
   authDomain: "apex-ad8c0.firebaseapp.com",
   projectId: "apex-ad8c0",
   storageBucket: "apex-ad8c0.firebasestorage.app",
+  messagingSenderId: "243749227658", // Added missing messagingSenderId from previous config
+  appId: "1:243749227658:web:3ac6fba9aac3100abcb173", // Added missing appId from previous config
   measurementId: "G-SKZY7WC4E3"
 };
 
@@ -56,7 +58,7 @@ let yearSelect;
 let featuredProductsGrid;
 let wishlistItemsContainer;
 let clearWishlistButton;
-let wishlistInitialMessage; // This element might be removed and re-added, so careful with global assignment.
+// Removed: wishlistInitialMessage; // This element is dynamically handled within loadWishlist
 
 // --- Profile Elements (assigned in DOMContentLoaded) ---
 let profileEmailSpan;
@@ -108,6 +110,7 @@ window.showPage = function(id) {
     if (hamburgerMenu && hamburgerMenu.classList.contains('open')) {
         hamburgerMenu.classList.remove('open');
         navLinks.classList.remove('active');
+        hamburgerMenu.setAttribute('aria-expanded', 'false'); // Accessibility
     }
 
     // Load data specific to the page being shown
@@ -154,6 +157,8 @@ function displayFormError(elementId, message) {
     const errorSpan = document.getElementById(elementId);
     if (errorSpan) {
         errorSpan.textContent = message;
+        // Ensure error messages are visible
+        errorSpan.style.display = 'block';
     } else {
         console.warn(`[FormError] Error span with ID '${elementId}' not found.`);
     }
@@ -164,6 +169,8 @@ function clearFormErrors(formId) {
     if (form) {
         form.querySelectorAll('.error-message').forEach(span => {
             span.textContent = '';
+            // Ensure error messages are hidden when cleared
+            span.style.display = 'none';
         });
     }
 }
@@ -214,32 +221,30 @@ function setButtonLoading(button, isLoading) {
 // --- Auth State Listener ---
 onAuthStateChanged(auth, user => {
     console.log("[Auth] State changed. User:", user ? user.email : "none");
-    if (!userEmailSpan) {
-        document.addEventListener('DOMContentLoaded', () => { // Fallback if DOMContentLoaded hasn't fired yet
-            const emailSpan = document.getElementById("userEmail");
-            if (emailSpan) updateAuthStateUI(user, emailSpan);
-        });
+    // Ensure all required DOM elements are assigned before calling updateAuthStateUI
+    // This is especially important for the first run on page load.
+    if (!userEmailSpan || !googleLoginBtn || !logoutBtn) {
+        // If DOM elements aren't ready, defer update until DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthStateUI(user, userEmailSpan);
+        }, { once: true }); // Ensure it only runs once
     } else {
         updateAuthStateUI(user, userEmailSpan);
     }
 });
 
 function updateAuthStateUI(user, emailSpanElement) {
-    // START NEW CODE: Style for Google Login and Logout buttons
+    // Style for Google Login and Logout buttons
     if (googleLoginBtn) {
-        googleLoginBtn.style.padding = '10px 20px'; // Make bigger
-        googleLoginBtn.style.fontSize = '1.1em'; // Make text larger
-        googleLoginBtn.style.fontWeight = 'bold'; // Make text bolder for readability
-        // You might also want to add background-color, border, border-radius etc. in your CSS.
-        // For example: googleLoginBtn.style.backgroundColor = '#4285F4'; googleLoginBtn.style.color = 'white';
+        googleLoginBtn.style.padding = '10px 20px';
+        googleLoginBtn.style.fontSize = '1.1em';
+        googleLoginBtn.style.fontWeight = 'bold';
     }
     if (logoutBtn) {
-        logoutBtn.style.padding = '10px 20px'; // Make bigger
-        logoutBtn.style.fontSize = '1.1em'; // Make text larger
-        logoutBtn.style.fontWeight = 'bold'; // Make text bolder for readability
-        // For example: logoutBtn.style.backgroundColor = '#dc3545'; logoutBtn.style.color = 'white';
+        logoutBtn.style.padding = '10px 20px';
+        logoutBtn.style.fontSize = '1.1em';
+        logoutBtn.style.fontWeight = 'bold';
     }
-    // END NEW CODE
 
 
     if (user) {
@@ -404,12 +409,14 @@ document.addEventListener('DOMContentLoaded', () => {
             event.stopPropagation();
             navLinks.classList.toggle('active');
             hamburgerMenu.classList.toggle('open');
+            hamburgerMenu.setAttribute('aria-expanded', navLinks.classList.contains('active').toString()); // Accessibility
         });
         navLinks.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
                 if (navLinks.classList.contains('active')) {
                     navLinks.classList.remove('active');
                     hamburgerMenu.classList.remove('open');
+                    hamburgerMenu.setAttribute('aria-expanded', 'false'); // Accessibility
                 }
             });
         });
@@ -417,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!navLinks.contains(event.target) && !hamburgerMenu.contains(event.target) && navLinks.classList.contains('active')) {
                 navLinks.classList.remove('active');
                 hamburgerMenu.classList.remove('open');
+                hamburgerMenu.setAttribute('aria-expanded', 'false'); // Accessibility
             }
         });
     }
@@ -1394,7 +1402,7 @@ async function loadVehicleForProducts() {
                     (selectedVehicleForSearch && vehicles.indexOf(selectedVehicleForSearch) === index)
                     ? 'selected' : ''
                 }>
-                    ${v.year} ${v.make} ${v.model}
+                    ${v.year} ${v.make} ${selectedVehicleForSearch.model}
                 </option>
             `).join('');
 
@@ -1821,4 +1829,116 @@ async function loadProfileVehicles(userId) {
                         data-model="${vehicle.model}"
                         data-year="${vehicle.year}"
                         data-created-at="${vehicle.createdAt}"
-                        aria-label
+                        aria-label="Remove ${vehicle.year} ${vehicle.make} ${vehicle.model} from profile">Remove</button>
+            `;
+            vehiclesListDiv.appendChild(vehicleCard);
+        });
+
+        vehiclesListDiv.querySelectorAll('.delete-vehicle-btn-profile').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const vehicleToDelete = {
+                    make: e.target.dataset.make,
+                    model: e.target.dataset.model,
+                    year: parseInt(e.target.dataset.year),
+                    createdAt: parseInt(e.target.dataset.createdAt) // Make sure this matches the type in Firestore (number from Date.now())
+                };
+                if (confirm('Are you sure you want to remove this vehicle from your garage?')) {
+                    const user = auth.currentUser;
+                    if (user) {
+                        try {
+                            await deleteVehicleFromArray(vehicleToDelete, e.target);
+                            showNotification('Vehicle removed from your garage.', 'success');
+                            loadProfileVehicles(user.uid);
+                        } catch (error) {
+                            console.error('[Profile ERROR] Error removing vehicle from profile:', error);
+                            showNotification('Failed to remove vehicle from profile.', 'error');
+                        }
+                    }
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("[Profile ERROR] Error loading profile vehicles:", error);
+        noVehiclesMessageElement.textContent = 'Error loading your saved vehicles. Please try again.';
+        noVehiclesMessageElement.style.display = 'block';
+        vehiclesListDiv.appendChild(noVehiclesMessageElement);
+        showNotification("Error loading saved vehicles for profile: " + error.message, "error");
+    }
+}
+
+
+// Placeholder function for loading order history
+function loadOrderHistory(userId) {
+    const orderListDiv = document.getElementById('orderHistoryList');
+    if (!orderListDiv) {
+        console.warn("[DOM] Order history list element not found (loadOrderHistory).");
+        return;
+    }
+
+    if (userId) {
+        orderListDiv.innerHTML = '<p class="no-items-message">Loading order history...</p>';
+        console.log(`[Firestore] Attempting to load order history for user: ${userId}`);
+
+        // If you're ready to implement actual order history:
+        /*
+        const ordersCollectionRef = collection(db, 'orders');
+        const q = query(ordersCollectionRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+
+        getDocs(q).then(snapshot => {
+            if (snapshot.empty) {
+                orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
+                console.log("[Firestore] No orders found for user.");
+                return;
+            }
+            orderListDiv.innerHTML = '';
+            console.log(`[Firestore] Found ${snapshot.docs.length} orders.`);
+            snapshot.forEach(orderDoc => {
+                const order = orderDoc.data();
+                const orderCard = document.createElement('div');
+                orderCard.className = 'card order-card';
+                orderCard.innerHTML = `
+                    <h5>Order #${orderDoc.id.substring(0, 8)}</h5>
+                    <p>Date: ${order.createdAt ? new Date(order.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                    <p>Total: $${order.total ? order.total.toFixed(2) : 'N/A'}</p>
+                    <button class="view-order-details-btn">View Details</button>
+                `;
+                orderListDiv.appendChild(orderCard);
+            });
+        }).catch(error => {
+            console.error("[Firestore ERROR] Error loading order history:", error);
+            orderListDiv.innerHTML = '<p class="no-items-message">Error loading order history.</p>';
+            showNotification("Error loading order history.", "error");
+        });
+        */
+        setTimeout(() => {
+            orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
+        }, 500);
+
+    } else {
+        orderListDiv.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
+        console.log("[OrderHistory] User not logged in. Displaying login prompt for orders.");
+    }
+}
+
+
+function checkPasswordStrength(password) {
+    let score = 0;
+    if (password.length > 5) score++;
+    if (password.length > 7) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score < 3) return 'weak';
+    if (score < 5) return 'medium';
+    return 'strong';
+}
+
+function updatePasswordStrengthIndicator(strength) {
+    if (document.getElementById('passwordStrength')) {
+        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
+    }
+}
