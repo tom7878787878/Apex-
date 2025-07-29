@@ -25,7 +25,7 @@
         <li><a href="#" onclick="showPage('wishlist')">My Wishlist</a></li>
         <li><a href="#" onclick="showPage('profile')">My Profile</a></li>
         <li><a href="#" onclick="showPage('contact')">Contact</a></li>
-        <li><a href="#" onclick="showPage('guides')">How-To Guides</a></li> </ul>
+      </ul>
       <span id="userEmail" aria-live="polite"></span>
       <div class="hamburger-menu" id="hamburgerMenu" role="button" aria-controls="navLinks" aria-expanded="false" tabindex="0">
         <span></span>
@@ -120,5 +120,184 @@
           <button type="submit">Save Vehicle</button>
         </form>
 
-        <hr style="margin: 20px 0; border-color: var(--color-border);" />
-        <div class="vin-lookup-section">
+        <hr style="margin: 20px 0; border-color: var(--color-border);" /> <div class="vin-lookup-section">
+            <h4>Or Look Up by VIN (Vehicle Identification Number)</h4>
+            <div class="form-group">
+                <label for="vinInput">VIN:</label>
+                <input type="text" id="vinInput" placeholder="Enter 17-character VIN" maxlength="17" pattern="[A-HJ-NPR-Z0-9]{17}" title="Please enter a valid 17-character VIN (excluding I, O, Q)" />
+                <span class="error-message" id="vinInputError"></span>
+            </div>
+            <button type="button" id="addVinButton" class="btn btn-secondary">Look Up Vehicle by VIN</button>
+            <div id="vinLookupMessage" class="info-message" style="margin-top: 10px;"></div>
+        </div>
+        
+        <h3>My Saved Vehicles</h3>
+        <div id="savedVehicles" class="grid">
+          <p id="noVehiclesMessage" class="no-items-message">No vehicles saved yet. Add one above!</p>
+          </div>
+      </div>
+    </section>
+
+    <section id="wishlist" class="page">
+        <div class="container">
+            <h2>My Wishlist</h2>
+            <div id="wishlistItems" class="grid" aria-live="polite">
+                <p class="no-items-message">Please log in to see your wishlist, or add some products from the Products page!</p>
+            </div>
+            <button id="clearWishlistBtn" style="margin-top: 2rem;">Clear Wishlist</button>
+        </div>
+    </section>
+
+    <section id="profile" class="page">
+        <div class="container">
+            <h2>My Profile</h2>
+            <div class="profile-info-card">
+                <h3>Account Information</h3>
+                <p><strong>Email:</strong> <span id="profileEmail">Not logged in</span></p>
+                <p><strong>Display Name:</strong> <span id="profileDisplayName">Not set</span></p>
+
+                <form id="updateProfileForm" style="margin-top: 2rem;">
+                    <h4>Update Personal Info</h4>
+                    <label for="firstNameInput">First Name</label>
+                    <input type="text" id="firstNameInput" placeholder="Your First Name" aria-describedby="firstNameError"/>
+                    <span id="firstNameError" class="error-message" aria-live="polite"></span>
+
+                    <label for="lastNameInput">Last Name</label>
+                    <input type="text" id="lastNameInput" placeholder="Your Last Name" aria-describedby="lastNameError"/>
+                    <span id="lastNameError" class="error-message" aria-live="polite"></span>
+
+                    <label for="phoneInput">Phone Number</label>
+                    <input type="tel" id="phoneInput" placeholder="(XXX) XXX-XXXX" aria-describedby="phoneError"/>
+                    <span id="phoneError" class="error-message" aria-live="polite"></span>
+
+                    <label for="addressInput">Street Address</label>
+                    <input type="text" id="addressInput" placeholder="123 Main St" aria-describedby="addressError"/>
+                    <span id="addressError" class="error-message" aria-live="polite"></span>
+
+                    <label for="cityInput">City</label>
+                    <input type="text" id="cityInput" placeholder="Anytown" aria-describedby="cityError"/>
+                    <span id="cityError" class="error-message" aria-live="polite"></span>
+
+                    <label for="stateInput">State / Province</label>
+                    <input type="text" id="stateInput" placeholder="CA" aria-describedby="stateError"/>
+                    <span id="stateError" class="error-message" aria-live="polite"></span>
+
+                    <label for="zipInput">Zip / Postal Code</label>
+                    <input type="text" id="zipInput" placeholder="12345" aria-describedby="zipError"/>
+                    <span id="zipError" class="error-message" aria-live="polite"></span>
+
+                    <label for="countryInput">Country</label>
+                    <input type="text" id="countryInput" placeholder="USA" aria-describedby="countryError"/>
+                    <span id="countryError" class="error-message" aria-live="polite"></span>
+
+                    <button type="submit" id="saveProfileBtn">Save Personal Info</button>
+                </form>
+
+                <form id="preferencesForm" style="margin-top: 2rem;">
+                    <h4>Communication Preferences</h4>
+                    <div class="form-checkbox-group">
+                        <input type="checkbox" id="newsletterCheckbox">
+                        <label for="newsletterCheckbox">Subscribe to Newsletter</label>
+                    </div>
+                    <button type="submit" id="savePreferencesBtn">Save Preferences</button>
+                </form>
+
+                <div id="orderHistorySection" style="margin-top: 3rem;">
+                    <h4>Order History</h4>
+                    <div id="orderHistoryList" class="grid">
+                        <p class="no-items-message">No past orders found. Start shopping today!</p>
+                        </div>
+                </div>
+
+                <div id="profileSavedVehiclesSection" style="margin-top: 3rem;">
+                    <h4>My Saved Vehicles</h4>
+                    <div id="profileSavedVehiclesList" class="grid">
+                        <p id="noProfileVehiclesMessage" class="no-items-message">No vehicles saved yet. Go to My Garage to add one!</p>
+                        </div>
+                </div>
+
+                <button id="changePasswordBtn" style="margin-top: 2rem;">Change Password</button>
+                <button id="deleteAccountBtn" class="delete-account-btn" style="margin-top: 1rem;">Delete Account</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="page">
+      <div class="container">
+        <h2>Contact Us</h2>
+        <form id="contactForm" action="https://formspree.io/f/xrblewkn" method="POST">
+          <h3>Send us a message!</h3>
+          <label for="contactName">Name</label>
+          <input type="text" id="contactName" name="name" placeholder="Your Name" required aria-describedby="contactNameError"/>
+          <span id="contactNameError" class="error-message" aria-live="polite"></span>
+
+          <label for="contactEmail">Email</label>
+          <input type="email" id="contactEmail" name="email" placeholder="Your Email" required aria-describedby="contactEmailError"/>
+          <span id="contactEmailError" class="error-message" aria-live="polite"></span>
+
+          <label for="contactMessage">Message</label>
+          <textarea id="contactMessage" name="message" placeholder="Your Message" required aria-describedby="contactMessageError"></textarea>
+          <span id="contactMessageError" class="error-message" aria-live="polite"></span>
+
+          <button type="submit">Send Message</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="auth" class="page">
+      <div class="container">
+        <h2>Login / Register</h2>
+        <form id="loginForm">
+          <h3>Login</h3>
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="Email" required aria-describedby="loginEmailError"/>
+          <span id="loginEmailError" class="error-message" aria-live="polite"></span>
+
+          <label for="loginPass">Password</label>
+          <div class="password-input-container">
+            <input type="password" id="loginPass" placeholder="Password" required aria-describedby="loginPassError"/>
+            <button type="button" id="toggleLoginPass" aria-label="Show password">👁️</button>
+          </div>
+          <span id="loginPassError" class="error-message" aria-live="polite"></span>
+          <a href="#" class="forgot-password-link">Forgot Password?</a>
+          <button type="submit">Login</button>
+        </form>
+        <form id="registerForm">
+          <h3>Register</h3>
+          <label for="regEmail">Email</label>
+          <input type="email" id="regEmail" placeholder="Email" required aria-describedby="regEmailError"/>
+          <span id="regEmailError" class="error-message" aria-live="polite"></span>
+
+          <label for="regPass">Password</label>
+          <div class="password-input-container">
+            <input type="password" id="regPass" placeholder="Password" required aria-describedby="regPassError"/>
+            <button type="button" id="toggleRegPass" aria-label="Show password">👁️</button>
+          </div>
+          <span id="regPassError" class="error-message" aria-live="polite"></span>
+          <button type="submit">Register</button>
+        </form>
+        <button id="googleLoginBtn" onclick="googleLogin()">Login with Google</button>
+        <button id="logoutBtn" onclick="logout()">Logout</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <span id="currentYear"></span> Apex Auto Parts. All rights reserved.</p>
+      <ul class="footer-links">
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Sitemap</a></li>
+      </ul>
+      <div class="social-media">
+        <a href="#" aria-label="Facebook"><img src="images/facebook-icon.webp" alt="Facebook"></a>
+        <a href="#" aria-label="Instagram"><img src="images/instagram-icon.webp" alt="Instagram"></a>
+        <a href="#" aria-label="Twitter"><img src="images/twitter-icon.webp" alt="Twitter"></a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
