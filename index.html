@@ -25,7 +25,7 @@
         <li><a href="#" onclick="showPage('wishlist')">My Wishlist</a></li>
         <li><a href="#" onclick="showPage('profile')">My Profile</a></li>
         <li><a href="#" onclick="showPage('contact')">Contact</a></li>
-      </ul>
+        <li><a href="#" onclick="showPage('guides')">How-To Guides</a></li> </ul>
       <span id="userEmail" aria-live="polite"></span>
       <div class="hamburger-menu" id="hamburgerMenu" role="button" aria-controls="navLinks" aria-expanded="false" tabindex="0">
         <span></span>
@@ -120,7 +120,8 @@
           <button type="submit">Save Vehicle</button>
         </form>
 
-        <hr style="margin: 20px 0; border-color: var(--color-border);" /> <div class="vin-lookup-section">
+        <hr style="margin: 20px 0; border-color: var(--color-border);" />
+        <div class="vin-lookup-section">
             <h4>Or Look Up by VIN (Vehicle Identification Number)</h4>
             <div class="form-group">
                 <label for="vinInput">VIN:</label>
@@ -130,7 +131,6 @@
             <button type="button" id="addVinButton" class="btn btn-secondary">Look Up Vehicle by VIN</button>
             <div id="vinLookupMessage" class="info-message" style="margin-top: 10px;"></div>
         </div>
-        
         <h3>My Saved Vehicles</h3>
         <div id="savedVehicles" class="grid">
           <p id="noVehiclesMessage" class="no-items-message">No vehicles saved yet. Add one above!</p>
@@ -280,7 +280,37 @@
         <button id="logoutBtn" onclick="logout()">Logout</button>
       </div>
     </section>
-  </main>
+
+    <section id="guides" class="page">
+      <div class="container">
+        <h2>How-To Guides & Resources</h2>
+        <p>Find step-by-step guides and helpful resources for maintaining and repairing your vehicle.</p>
+
+        <div class="grid guides-grid">
+          <div class="guide-card card">
+            <h4>Changing Your Oil</h4>
+            <p>A comprehensive guide to performing an oil change on most passenger vehicles.</p>
+            <a href="guides/oil-change-guide.pdf" download="oil-change-guide.pdf" class="button download-btn" aria-label="Download Oil Change Guide PDF">Download Guide</a>
+          </div>
+          
+          <div class="guide-card card">
+            <h4>Brake Pad Replacement</h4>
+            <p>Learn how to safely replace worn brake pads and rotors on your car.</p>
+            <a href="guides/brake-replacement-guide.pdf" download="brake-replacement-guide.pdf" class="button download-btn" aria-label="Download Brake Pad Replacement Guide PDF">Download Guide</a>
+          </div>
+
+          <div class="guide-card card">
+            <h4>Tire Rotation & Inspection</h4>
+            <p>Extend the life of your tires with proper rotation and inspection techniques.</p>
+            <a href="guides/tire-rotation-guide.pdf" download="tire-rotation-guide.pdf" class="button download-btn" aria-label="Download Tire Rotation Guide PDF">Download Guide</a>
+          </div>
+
+          </div>
+
+        <p style="margin-top: 2rem;">Don't see what you're looking for? <a href="#" onclick="showPage('contact')">Contact us</a> with your suggestions!</p>
+      </div>
+    </section>
+    </main>
 
   <footer>
     <div class="container">
