@@ -6,13 +6,13 @@ import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, 
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc",
-  authDomain: "apex-ad8c0.firebaseapp.com",
-  projectId: "apex-ad8c0",
-  storageBucket: "apex-ad8c0.firebasestorage.app",
-  messagingSenderId: "243749227658",
-  appId: "1:243749227658:web:3ac6fba9aac3100abcb173",
-  measurementId: "G-SKZY7WC4E3"
+    apiKey: "AIzaSyCbASk2ttihM-k3Noo1uhTCCsuc2FBBiSc",
+    authDomain: "apex-ad8c0.firebaseapp.com",
+    projectId: "apex-ad8c0",
+    storageBucket: "apex-ad8c0.firebasestorage.app",
+    messagingSenderId: "243749227658",
+    appId: "1:243749227658:web:3ac6fba9aac3100abcb173",
+    measurementId: "G-SKZY7WC4E3"
 };
 
 // Initialize Firebase
@@ -129,6 +129,8 @@ window.showPage = function(id) {
     if (hamburgerMenu && hamburgerMenu.classList.contains('open')) {
         hamburgerMenu.classList.remove('open');
         navLinks.classList.remove('active');
+        // NEW: Update aria-expanded when closing the menu
+        hamburgerMenu.setAttribute('aria-expanded', 'false');
     }
 
     // Load data specific to the page being shown
@@ -196,6 +198,21 @@ function clearAuthFields() {
     if (loginPassInput) loginPassInput.value = "";
     if (regEmailInput) regEmailInput.value = "";
     if (regPassInput) regPassInput.value = "";
+
+    // Reset password toggle icon and attributes
+    if (toggleLoginPassBtn && loginPassInput) { // Check loginPassInput too, as its type is changed
+        loginPassInput.setAttribute('type', 'password');
+        toggleLoginPassBtn.setAttribute('aria-label', 'Show password');
+        toggleLoginPassBtn.setAttribute('aria-pressed', 'false');
+        toggleLoginPassBtn.textContent = '👁️';
+    }
+    if (toggleRegPassBtn && regPassInput) { // Check regPassInput too
+        regPassInput.setAttribute('type', 'password');
+        toggleRegPassBtn.setAttribute('aria-label', 'Show password');
+        toggleRegPassBtn.setAttribute('aria-pressed', 'false');
+        toggleRegPassBtn.textContent = '👁️';
+    }
+
 
     if (passwordStrengthIndicator) {
         passwordStrengthIndicator.textContent = '';
@@ -406,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modelSelect = document.getElementById('modelSelect');
     yearSelect = document.getElementById('yearSelect');
 
-    // NEW: Assign elements for adding by Tag Number (VIN)
+    // NEW: Elements for adding by Tag Number (VIN)
     vinInput = document.getElementById('vinInput');
     addVinButton = document.getElementById('addVinButton');
     vinLookupMessage = document.getElementById('vinLookupMessage'); // A span or div to show lookup status
@@ -453,12 +470,17 @@ document.addEventListener('DOMContentLoaded', () => {
             event.stopPropagation();
             navLinks.classList.toggle('active');
             hamburgerMenu.classList.toggle('open');
+            // NEW: Update aria-expanded when opening/closing
+            const isExpanded = hamburgerMenu.getAttribute('aria-expanded') === 'true';
+            hamburgerMenu.setAttribute('aria-expanded', !isExpanded);
         });
         navLinks.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
                 if (navLinks.classList.contains('active')) {
                     navLinks.classList.remove('active');
                     hamburgerMenu.classList.remove('open');
+                    // NEW: Update aria-expanded when closing the menu by clicking a link
+                    hamburgerMenu.setAttribute('aria-expanded', 'false');
                 }
             });
         });
@@ -466,6 +488,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!navLinks.contains(event.target) && !hamburgerMenu.contains(event.target) && navLinks.classList.contains('active')) {
                 navLinks.classList.remove('active');
                 hamburgerMenu.classList.remove('open');
+                // NEW: Update aria-expanded when clicking outside the menu
+                hamburgerMenu.setAttribute('aria-expanded', 'false');
             }
         });
     }
@@ -665,7 +689,9 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleLoginPassBtn.addEventListener('click', () => {
             const type = loginPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
             loginPassInput.setAttribute('type', type);
+            // NEW: Update aria-label and aria-pressed
             toggleLoginPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+            toggleLoginPassBtn.setAttribute('aria-pressed', type !== 'password'); // True if text, false if password
             toggleLoginPassBtn.textContent = type === 'password' ? '👁️' : '🙈';
         });
     } else { console.warn("[DOM] Login password toggle not found."); }
@@ -674,7 +700,9 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleRegPassBtn.addEventListener('click', () => {
             const type = regPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
             regPassInput.setAttribute('type', type);
+            // NEW: Update aria-label and aria-pressed
             toggleRegPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+            toggleRegPassBtn.setAttribute('aria-pressed', type !== 'password'); // True if text, false if password
             toggleRegPassBtn.textContent = type === 'password' ? '👁️' : '🙈';
         });
     } else { console.warn("[DOM] Register password toggle not found."); }
@@ -848,13 +876,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (makeSelect) makeSelect.value = vehicleDetails.make;
                     // For model and year, we need to ensure the dropdowns are populated with options first
                     if (modelSelect) {
-                         // Await fetching models for the make before setting the value
-                         await fetchModelsByMake(vehicleDetails.make);
-                         modelSelect.value = vehicleDetails.model;
+                            // Await fetching models for the make before setting the value
+                            await fetchModelsByMake(vehicleDetails.make);
+                            modelSelect.value = vehicleDetails.model;
                     }
                     if (yearSelect) {
                         populateYears(); // Ensure years are populated
-                        yearSelect.value = vehicleDetails.year;
+                        yearSelect.value = vehicleDetails.Year; // Note: VIN API gives 'Year', not 'year'
                     }
 
                     vinInput.value = ''; // Clear VIN input after successful lookup
@@ -1264,439 +1292,4 @@ async function renderSavedVehicles() {
         const vehicles = await getSavedVehiclesFromFirestore();
         savedVehiclesContainer.innerHTML = ''; // Clear loading message now that data is fetched
 
-        if (vehicles.length === 0) {
-            noVehiclesMessage.textContent = 'No vehicles saved yet. Add one above!';
-            noVehiclesMessage.style.display = 'block';
-            savedVehiclesContainer.appendChild(noVehiclesMessage);
-        } else {
-            noVehiclesMessage.style.display = 'none'; // Hide the message if vehicles exist
-            vehicles.forEach((vehicle, index) => {
-                const vehicleCard = document.createElement('div');
-                vehicleCard.className = 'vehicle-card';
-                vehicleCard.setAttribute('data-vehicle-index', index);
-                vehicleCard.innerHTML = `
-                    <div class="vehicle-info">
-                        <h4>${vehicle.year} ${vehicle.make} ${vehicle.model}</h4>
-                        <p>Make: ${vehicle.make}</p>
-                        <p>Model: ${vehicle.model}</p>
-                        <p>Year: ${vehicle.year}</p>
-                    </div>
-                    <button class="delete-vehicle-btn"
-                            data-vehicle-index="${index}"
-                            data-make="${vehicle.make}"
-                            data-model="${vehicle.model}"
-                            data-year="${vehicle.year}"
-                            data-created-at="${vehicle.createdAt}"
-                            aria-label="Delete ${vehicle.year} ${vehicle.make} ${vehicle.model}">Delete</button>
-                `;
-                savedVehiclesContainer.appendChild(vehicleCard);
-            });
-
-            // Attach listeners after all cards are added
-            document.querySelectorAll('#savedVehicles .delete-vehicle-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const vehicleToDelete = {
-                        make: e.target.dataset.make,
-                        model: e.target.dataset.model,
-                        year: parseInt(e.target.dataset.year),
-                        createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt // Crucial for arrayRemove to match exactly
-                    };
-                    await deleteVehicleFromArray(vehicleToDelete, e.target);
-                });
-            });
-        }
-    } catch (error) {
-        console.error("[Garage ERROR] Error in renderSavedVehicles:", error);
-        noVehiclesMessage.textContent = 'Error loading your vehicles. Please try again.';
-        noVehiclesMessage.style.display = 'block';
-        savedVehiclesContainer.appendChild(noVehiclesMessage);
-        showNotification("Error loading saved vehicles: " + error.message, "error", 5000);
-    }
-    // NEW: Check and show banner after rendering vehicles
-    checkAndShowGreaseMonkeyBanner();
-}
-
-// Deletes a vehicle from the array field within the garage document
-async function deleteVehicleFromArray(vehicleToDelete, button) {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        showNotification("Please log in to delete vehicles.", "error");
-        return;
-    }
-
-    setButtonLoading(button, true);
-
-    try {
-        await updateDoc(userGarageDocRef, {
-            [FIRESTORE_VEHICLES_FIELD]: arrayRemove(vehicleToDelete)
-        });
-        showNotification(`Vehicle "${vehicleToDelete.year} ${vehicleToDelete.make} ${vehicleToDelete.model}" deleted.`, 'info');
-        setTimeout(async () => { // Small delay for Firestore sync
-            await renderSavedVehicles();
-            await loadVehicleForProducts();
-            await loadProfileVehicles(auth.currentUser.uid);
-             // NEW: Check banner state after deleting a vehicle
-            checkAndShowGreaseMonkeyBanner();
-        }, 500);
-    } catch (error) {
-        console.error("[Garage ERROR] Error deleting vehicle from array:", error);
-        showNotification("Error deleting vehicle: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-
-// --- NEW SECTION: Vehicle API Integration (NHTSA API) ---
-
-const NHTSA_API_BASE_URL = 'https://vpic.nhtsa.dot.gov/api/vehicles';
-
-/**
- * Fetches vehicle makes from the NHTSA API, filters them by a predefined whitelist,
- * and populates the makeSelect dropdown.
- */
-async function fetchMakes() {
-    if (!makeSelect) {
-        console.warn("[API] Make select element not found.");
-        return;
-    }
-    makeSelect.innerHTML = '<option value="">-- Loading Makes... --</option>';
-    makeSelect.disabled = true; // Disable while loading
-
-    try {
-        const response = await fetch(`${NHTSA_API_BASE_URL}/GetAllMakes?format=json`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        const makes = data.Results; // Array of { Make_ID, Make_Name }
-
-        // Filter the fetched makes using the VALID_MAKES_WHITELIST
-        const filteredMakes = makes.filter(make =>
-            VALID_MAKES_WHITELIST.some(allowedMake =>
-                make.Make_Name.toLowerCase() === allowedMake.toLowerCase()
-            )
-        );
-
-        // Clear existing options
-        makeSelect.innerHTML = '<option value="">-- Select Make --</option>';
-        if (filteredMakes.length > 0) {
-            // Sort the filtered makes alphabetically by name
-            filteredMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name));
-            filteredMakes.forEach(make => {
-                const option = document.createElement('option');
-                option.value = make.Make_Name;
-                option.textContent = make.Make_Name;
-                makeSelect.appendChild(option);
-            });
-            makeSelect.disabled = false; // Enable make selection
-        } else {
-            showNotification('No matching makes found based on your filter list.', 'info');
-            makeSelect.innerHTML = '<option value="">-- No Makes Found --</option>';
-            makeSelect.disabled = true;
-        }
-
-    } catch (error) {
-        console.error('Error fetching and filtering makes:', error);
-        showNotification('Failed to load vehicle makes. Please try again later.', 'error');
-        makeSelect.innerHTML = '<option value="">-- Error Loading Makes --</option>';
-        makeSelect.disabled = true; // Keep disabled on error
-    }
-}
-
-/**
- * Fetches models for a given make from the NHTSA API and populates the modelSelect dropdown.
- * @param {string} makeName - The name of the selected vehicle make.
- */
-async function fetchModelsByMake(makeName) {
-    if (!modelSelect || !yearSelect) {
-        console.warn("[API] Model or Year select elements not found.");
-        return;
-    }
-    modelSelect.innerHTML = '<option value="">-- Loading Models... --</option>';
-    modelSelect.disabled = true;
-    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-    yearSelect.disabled = true;
-
-    if (!makeName) { // If no make is selected, reset models and years
-        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
-        modelSelect.disabled = true;
-        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-        yearSelect.disabled = true;
-        return;
-    }
-
-    try {
-        // Encode makeName for URL
-        const encodedMakeName = encodeURIComponent(makeName);
-        const response = await fetch(`${NHTSA_API_BASE_URL}/GetModelsForMake/${encodedMakeName}?format=json`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        const models = data.Results; // Array of { Model_ID, Model_Name }
-
-        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
-        if (models && models.length > 0) {
-            models.sort((a, b) => a.Model_Name.localeCompare(b.Model_Name)); // Sort alphabetically
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.Model_Name;
-                option.textContent = model.Model_Name;
-                modelSelect.appendChild(option);
-            });
-            modelSelect.disabled = false; // Enable model selection
-        } else {
-            showNotification(`No models found for ${makeName}.`, 'info');
-            modelSelect.innerHTML = '<option value="">-- No Models Found --</option>';
-            modelSelect.disabled = true;
-        }
-        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-        yearSelect.disabled = true; // Disable year until model is chosen
-    } catch (error) {
-        console.error('Error fetching models:', error);
-        showNotification(`Failed to load models for ${makeName}. Please try again.`, 'error');
-        modelSelect.innerHTML = '<option value="">-- Error Loading Models --</option>';
-        modelSelect.disabled = true;
-        yearSelect.disabled = true;
-    }
-}
-
-/**
- * Populates the yearSelect dropdown with a reasonable range of years.
- * NHTSA API doesn't provide years directly for make/model, so we generate a range.
- */
-function populateYears() {
-    if (!yearSelect) {
-        console.warn("[API] Year select element not found.");
-        return;
-    }
-    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-    const currentYear = new Date().getFullYear();
-    // Go back 30 years and up to next year for new models
-    for (let year = currentYear + 1; year >= currentYear - 30; year--) {
-        const option = document.createElement('option');
-        option.value = year;
-        option.textContent = year;
-        yearSelect.appendChild(option);
-    }
-    yearSelect.disabled = false; // Enable year selection
-}
-
-/**
- * Fetches vehicle details from the NHTSA API using a VIN.
- * @param {string} vin - The Vehicle Identification Number (must be 17 characters).
- * @returns {object|null} An object with make, model, year, or null if not found/error.
- */
-async function fetchVehicleDetailsByVin(vin) {
-    // NHTSA VIN Decoding endpoint
-    const url = `${NHTSA_API_BASE_URL}/DecodeVin/${encodeURIComponent(vin)}?format=json`;
-    console.log(`[API] Fetching VIN details for: ${vin}`);
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-
-        // Check for specific error codes or if Results is not populated correctly
-        if (data.Errors && data.Errors.length > 0) {
-            console.error("[API] NHTSA VIN Decode API returned errors:", data.Errors.map(e => e.Message).join(", "));
-            // Look for a specific error indicating invalid VIN or no data
-            if (data.Errors.some(e => e.Message.includes("Invalid VIN") || e.Message.includes("Not Found"))) {
-                 return null; // Treat as not found for a clean user message
-            }
-            throw new Error(data.Errors.map(e => e.Message).join(", ")); // Re-throw generic errors
-        }
-
-        if (data.Results && data.Results.length > 0) {
-            const results = data.Results;
-            const makeEntry = results.find(item => item.Variable === "Make");
-            const modelEntry = results.find(item => item.Variable === "Model");
-            const modelYearEntry = results.find(item => item.Variable === "Model Year");
-
-            const make = makeEntry ? makeEntry.Value : null;
-            const model = modelEntry ? modelEntry.Value : null;
-            const year = modelYearEntry ? parseInt(modelYearEntry.Value) : null;
-
-            if (make && model && year) {
-                console.log(`[API] VIN lookup successful: ${year} ${make} ${model}`);
-                return { make, model, year };
-            } else {
-                console.warn("[API] Partial VIN details found or missing key info:", { make, model, year, results });
-                // If essential details (make, model, year) are missing, consider it not found
-                return null;
-            }
-        } else {
-            console.warn("[API] No results found for VIN:", vin);
-            return null;
-        }
-    } catch (error) {
-        console.error(`[API ERROR] Error decoding VIN ${vin}:`, error);
-        throw error; // Re-throw to be caught by the calling event listener
-    }
-}
-
-// --- END NEW SECTION: Vehicle API Integration ---
-
-
-// Loads vehicle data for the Products page's search and filtering options
-async function loadVehicleForProducts() {
-    const productContentDiv = document.getElementById('productContent');
-    if (!productContentDiv) {
-        console.warn("[DOM] Product content div not found for loadVehicleForProducts.");
-        return;
-    }
-
-    productContentDiv.innerHTML = '<p class="no-items-message">Loading vehicle search options...</p>';
-
-
-    if (!auth.currentUser) {
-        productContentDiv.innerHTML = `
-            <div class="no-vehicle-message">
-                <h3>Please Log In or Save Your Vehicle</h3>
-                <p>To get personalized part searches, please <a href="#" onclick="showPage('auth')">log in</a> or go to <a href="#" onclick="showPage('garage')">My Garage</a> to save your vehicle details.</p>
-            </div>
-        `;
-        selectedVehicleForSearch = null;
-        return;
-    }
-
-    try {
-        const vehicles = await getSavedVehiclesFromFirestore();
-
-        if (vehicles.length > 0) {
-            // Select the first vehicle by default if none is selected or if selected vehicle was removed
-            if (!selectedVehicleForSearch || !vehicles.some(v =>
-                v.make === selectedVehicleForSearch.make &&
-                v.model === selectedVehicleForSearch.model &&
-                v.year === selectedVehicleForSearch.year)
-            ) {
-                selectedVehicleForSearch = vehicles[0];
-            }
-
-            let vehicleOptionsHtml = vehicles.map((v, index) => `
-                <option value="${index}" ${
-                    (selectedVehicleForSearch && vehicles.indexOf(selectedVehicleForSearch) === index)
-                    ? 'selected' : ''
-                }>
-                    ${v.year} ${v.make} ${v.model}
-                </option>
-            `).join('');
-
-            let htmlContent = `
-                <div class="select-vehicle-container">
-                    <label for="vehicleSelect">Select Your Vehicle:</label>
-                    <select id="vehicleSelect">
-                        ${vehicleOptionsHtml}
-                    </select>
-                </div>
-
-                <h3 style="text-align: center; margin-top: 2rem;">Parts for Your <span id="currentSearchVehicle">${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}</span></h3>
-
-                <div class="general-search-section">
-                    <label for="generalProductSearch" class="sr-only">Search Parts by Keyword</label>
-                    <input type="text" id="generalProductSearch" placeholder="Search for any part (e.g., 'alternator')" />
-                    <button id="generalSearchButton">Search</button>
-                </div>
-
-                <p style="text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;">Or click a category below to search Amazon directly for your vehicle:</p>
-                <div class="category-buttons">
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Brake Pads')">Brake Pads</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Oil Filter')">Oil Filter</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Air Filter')">Air Filter</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Spark Plugs')">Spark Plugs</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Suspension Kit')">Suspension Kit</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Headlights')">Headlights</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Tail Lights')">Tail Lights</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Windshield Wipers')">Wiper Blades</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Radiator')">Radiator</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Battery')">Battery</button>
-                    </div>
-            `;
-            productContentDiv.innerHTML = htmlContent;
-
-            const vehicleSelect = document.getElementById('vehicleSelect');
-            const currentSearchVehicleSpan = document.getElementById('currentSearchVehicle');
-
-            if (vehicleSelect) {
-                vehicleSelect.addEventListener('change', (event) => {
-                    const selectedIndex = parseInt(event.target.value);
-                    selectedVehicleForSearch = vehicles[selectedIndex];
-                    if (currentSearchVehicleSpan) {
-                         currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
-                    }
-                });
-            }
-
-            const generalSearchInput = document.getElementById('generalProductSearch');
-            const generalSearchButton = document.getElementById('generalSearchButton');
-
-            if (generalSearchInput && generalSearchButton) {
-                generalSearchInput.addEventListener('keypress', (event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        window.searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
-                    }
-                });
-
-                generalSearchButton.addEventListener('click', () => {
-                    window.searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
-                });
-            }
-
-
-        } else {
-            productContentDiv.innerHTML = `
-                <div class="no-vehicle-message">
-                    <h3>No Vehicle Saved</h3>
-                    <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
-                </div>
-            `;
-             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
-        }
-    } catch (err) {
-        console.error("[Product ERROR] Error loading vehicle for products page:", err);
-        productContentDiv.innerHTML = `
-            <div class="no-vehicle-message">
-                <h3>Error Loading Vehicle</h3>
-                <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
-            </div>
-        `;
-        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
-    }
-}
-
-// --- NEW: Globally accessible search functions ---
-window.searchAmazonSpecific = function(year, make, model, partType) {
-    const query = `${partType} ${year} ${make} ${model}`;
-    const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
-    window.open(url, "_blank");
-}
-
-window.searchAmazonGeneral = function(year, make, model) {
-    const searchInput = document.getElementById('generalProductSearch');
-    let query = searchInput.value.trim();
-
-    if (query) {
-        query = `${query} ${year} ${make} ${model}`;
-        const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
-        window.open(url, "_blank");
-        searchInput.value = '';
-    } else {
-        showNotification("Please enter a search term.", "info");
-    }
-}
-
-// Adds a product to the 'wishlist' array field within the garage document
-async function addToWishlist(product) {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        showNotification("Please log in to add items to your wishlist.", "error");
-        return;
-    }
-
-    try {
-        const userGarageDocSnap = await getDoc(userGarageDocRef);
-        let currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIREST
+        if (vehicles.length === 0)
