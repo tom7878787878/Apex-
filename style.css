@@ -370,3 +370,471 @@ form button.is-loading {
     box-shadow: 0 2px 8px rgba(231, 76, 60, 0.2);
 }
 #auth #logoutBtn:hover {
+    background: #c0392b;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+/* Additional button styles for delete, etc. */
+.delete-account-btn {
+    background-color: var(--accent-red);
+    box-shadow: 0 2px 8px rgba(231,76,60,0.2);
+}
+.delete-account-btn:hover {
+    background-color: #c0392b;
+    box-shadow: 0 4px 12px rgba(231,76,60,0.3);
+}
+
+.password-input-container {
+    position: relative;
+    display: flex;
+}
+.password-input-container input {
+    flex-grow: 1;
+    padding-right: 3rem; /* Make space for the button */
+}
+.password-input-container button {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1rem;
+    color: var(--text-medium);
+}
+.forgot-password-link {
+    font-size: 0.9rem;
+    text-align: right;
+    color: var(--accent-blue);
+    text-decoration: none;
+    margin-top: -1rem;
+    transition: color 0.3s ease;
+}
+.forgot-password-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.error-message {
+    color: var(--accent-red);
+    font-size: 0.9rem;
+    margin-top: -1rem; /* Adjust margin to place it directly below input */
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.notification-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    width: 320px;
+    z-index: 2000;
+}
+.notification-item {
+    background-color: var(--text-dark);
+    color: var(--text-light);
+    padding: 1rem 1.5rem;
+    margin-bottom: 0.8rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.4s ease-out forwards;
+}
+.notification-item.notification-success { background-color: var(--accent-green); }
+.notification-item.notification-error { background-color: var(--accent-red); }
+.notification-item.notification-info { background-color: var(--accent-blue); }
+.notification-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    margin-left: 1rem;
+}
+@keyframes slideIn {
+    from { transform: translateX(120%); }
+    to { transform: translateX(0); }
+}
+
+.password-strength {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: -1rem;
+    margin-bottom: 1rem;
+    text-align: right;
+    transition: color 0.3s ease;
+}
+.password-strength.weak { color: var(--accent-red); }
+.password-strength.medium { color: var(--accent-orange); }
+.password-strength.strong { color: var(--accent-green); }
+
+/* --- My Garage Specific Styles --- */
+.vin-lookup-section {
+    padding: 2rem;
+    background-color: var(--primary-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px var(--shadow-light);
+    margin-top: 2rem;
+    text-align: center;
+}
+.vin-lookup-section h4 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: var(--primary-dark);
+}
+.vin-lookup-section .form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.vin-lookup-section input {
+    width: 100%;
+    max-width: 350px;
+    margin-top: 0.5rem;
+}
+.vin-lookup-section button {
+    margin-top: 1rem;
+}
+#vinLookupMessage {
+    font-style: italic;
+    color: var(--text-medium);
+    font-size: 0.95rem;
+}
+
+/* --- Products Page Specific Styles --- */
+.product-options {
+    background-color: var(--text-light);
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px var(--shadow-light);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+.product-options .no-vehicle-message {
+    padding: 1rem;
+}
+.product-options .no-vehicle-message h3 {
+    color: var(--accent-red);
+}
+.product-options h3, .product-options h4 {
+    color: var(--primary-dark);
+}
+.select-vehicle-container {
+    margin-bottom: 2rem;
+}
+.select-vehicle-container label {
+    font-weight: 600;
+    margin-right: 1rem;
+}
+.select-vehicle-container select {
+    padding: 0.7rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+.general-search-section {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+.general-search-section input {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+.general-search-section button {
+    padding: 0.8rem 1.5rem;
+    background-color: var(--accent-red);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+.general-search-section button:hover {
+    background-color: #c0392b;
+}
+.category-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    justify-content: center;
+}
+.category-buttons button {
+    background-color: var(--primary-dark);
+    color: var(--text-light);
+    border: 1px solid var(--primary-dark);
+    padding: 0.8rem 1.2rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.category-buttons button:hover {
+    background-color: var(--accent-red);
+    border-color: var(--accent-red);
+    transform: translateY(-2px);
+}
+
+/* --- Wishlist Specific Styles --- */
+#wishlistItems .no-items-message {
+    padding: 2rem;
+    text-align: center;
+    font-style: italic;
+    color: var(--text-medium);
+}
+#wishlistItems .card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+#wishlistItems .card img {
+    margin: 0;
+    margin-bottom: 1.5rem;
+}
+#wishlistItems .card p {
+    margin: 0.5rem 0;
+}
+.remove-from-wishlist-btn {
+    background-color: var(--accent-red);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.remove-from-wishlist-btn:hover {
+    background-color: #c0392b;
+    transform: translateY(-2px);
+}
+#clearWishlistBtn {
+    background-color: var(--accent-red);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-weight: 600;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+#clearWishlistBtn:hover {
+    background-color: #c0392b;
+}
+
+/* --- Profile Specific Styles --- */
+.profile-info-card {
+    background: var(--text-light);
+    padding: 3rem;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px var(--shadow-light);
+}
+.profile-info-card h3, .profile-info-card h4 {
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--primary-dark);
+}
+.profile-info-card p {
+    margin-bottom: 0.5rem;
+}
+.profile-info-card label {
+    font-weight: 500;
+}
+.profile-info-card form {
+    margin-top: 2rem;
+    padding: 0;
+    box-shadow: none;
+}
+.profile-info-card form button {
+    width: 100%;
+}
+.form-checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.form-checkbox-group input {
+    margin-right: 0.5rem;
+}
+.form-checkbox-group label {
+    margin: 0;
+}
+.vehicle-card-profile, .order-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    margin: 0; /* Reset card margin for grid */
+}
+.vehicle-card-profile .delete-vehicle-btn-profile, .order-card .view-order-details-btn {
+    background-color: var(--accent-red);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.vehicle-card-profile .delete-vehicle-btn-profile:hover, .order-card .view-order-details-btn:hover {
+    background-color: #c0392b;
+    transform: translateY(-2px);
+}
+.vehicle-card-profile .vehicle-info p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+.vehicle-card-profile .vehicle-info h5 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+/* --- Contact Page Specific Styles --- */
+#contactForm h3 {
+    margin-bottom: 2rem;
+}
+
+/* --- Guides Page Specific Styles --- */
+.guides-grid .guide-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+.guides-grid .guide-card h4 {
+    margin-top: 0;
+}
+.guides-grid .guide-card p {
+    flex-grow: 1; /* Allow paragraph to take up available space */
+}
+.guides-grid .download-btn {
+    background-color: var(--accent-blue);
+    margin-top: 1rem;
+    width: 100%;
+    text-align: center;
+}
+.guides-grid .download-btn:hover {
+    background-color: #2980b9;
+}
+
+/* --- Footer --- */
+footer {
+    background-color: var(--primary-dark);
+    color: var(--text-light);
+    padding: 2.5rem 0;
+    text-align: center;
+    box-shadow: 0 -4px 12px var(--shadow-medium);
+}
+footer .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+footer p {
+    margin-top: 0;
+    font-size: 0.9rem;
+}
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    display: flex;
+    gap: 1.5rem;
+}
+.footer-links a {
+    color: var(--text-light);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+.footer-links a:hover {
+    color: var(--accent-red);
+}
+.social-media {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1rem;
+}
+.social-media img {
+    width: 32px;
+    height: 32px;
+    transition: transform 0.2s ease;
+}
+.social-media img:hover {
+    transform: scale(1.1);
+}
+
+/*
+* NEW: Styling for the Grease Monkey AI Banner
+*/
+#greaseMonkeyBanner {
+    background-color: #2c3e50; /* A dark, metallic blue */
+    color: #ecf0f1; /* Light gray for text */
+    text-align: center;
+    padding: 4rem 2rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#greaseMonkeyBanner h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#greaseMonkeyBanner p {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#greaseMonkeyBanner .cta-button {
+    background-color: #e74c3c; /* A bright, contrasting red */
+    color: white;
+    padding: 0.75rem 2rem;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+#greaseMonkeyBanner .cta-button:hover {
+    background-color: #c0392b;
+}
+
+@media (max-width: 768px) {
+    #greaseMonkeyBanner {
+        padding: 2rem 1rem;
+    }
+    #greaseMonkeyBanner h1 {
+        font-size: 2rem;
+    }
+    #greaseMonkeyBanner p {
+        font-size: 1rem;
+    }
+}
