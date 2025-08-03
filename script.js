@@ -39,6 +39,8 @@ let navLinks;
 let hamburgerMenu;
 let userEmailSpan;
 let notificationContainer;
+// NEW: Grease Monkey Banner
+let greaseMonkeyBanner; 
 
 // --- Auth Form Elements (assigned in DOMContentLoaded) ---
 let loginForm;
@@ -243,6 +245,37 @@ onAuthStateChanged(auth, user => {
     }
 });
 
+// NEW: Checks if the Grease Monkey AI banner should be shown
+async function checkAndShowGreaseMonkeyBanner() {
+    if (!greaseMonkeyBanner) {
+        console.warn("[GreaseMonkeyAI] Banner element not found.");
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            const vehicles = await getSavedVehiclesFromFirestore();
+            if (vehicles && vehicles.length > 0) {
+                // User is logged in and has saved a vehicle
+                greaseMonkeyBanner.style.display = 'block';
+                console.log("[GreaseMonkeyAI] Banner shown.");
+            } else {
+                // User is logged in but has no saved vehicles
+                greaseMonkeyBanner.style.display = 'none';
+                console.log("[GreaseMonkeyAI] Banner hidden (no vehicles saved).");
+            }
+        } catch (error) {
+            console.error("[GreaseMonkeyAI] Error checking for vehicles:", error);
+            greaseMonkeyBanner.style.display = 'none';
+        }
+    } else {
+        // User is not logged in
+        greaseMonkeyBanner.style.display = 'none';
+        console.log("[GreaseMonkeyAI] Banner hidden (user not logged in).");
+    }
+}
+
 function updateAuthStateUI(user, emailSpanElement) {
     if (user) {
         emailSpanElement.textContent = `Logged in as: ${user.email}`;
@@ -320,7 +353,13 @@ function updateAuthStateUI(user, emailSpanElement) {
         loadWishlist();       // Clears wishlist
         loadProfile();        // Clears profile fields
         showNotification("Logged out.", 'info', 2000);
+        // NEW: Hide the banner on logout
+        if (greaseMonkeyBanner) {
+            greaseMonkeyBanner.style.display = 'none';
+        }
     }
+    // NEW: Check and show banner after every auth state change
+    checkAndShowGreaseMonkeyBanner();
 }
 
 // --- DOMContentLoaded: Assign elements and attach all listeners ---
@@ -332,6 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
     hamburgerMenu = document.getElementById('hamburgerMenu');
     userEmailSpan = document.getElementById('userEmail');
     notificationContainer = document.getElementById('notificationContainer');
+    // NEW: Assign the Grease Monkey Banner element
+    greaseMonkeyBanner = document.getElementById('greaseMonkeyBanner');
 
     // Assign Auth Form Elements
     loginForm = document.getElementById('loginForm');
@@ -1271,6 +1312,8 @@ async function renderSavedVehicles() {
         savedVehiclesContainer.appendChild(noVehiclesMessage);
         showNotification("Error loading saved vehicles: " + error.message, "error", 5000);
     }
+    // NEW: Check and show banner after rendering vehicles
+    checkAndShowGreaseMonkeyBanner();
 }
 
 // Deletes a vehicle from the array field within the garage document
@@ -1292,6 +1335,8 @@ async function deleteVehicleFromArray(vehicleToDelete, button) {
             await renderSavedVehicles();
             await loadVehicleForProducts();
             await loadProfileVehicles(auth.currentUser.uid);
+             // NEW: Check banner state after deleting a vehicle
+            checkAndShowGreaseMonkeyBanner();
         }, 500);
     } catch (error) {
         console.error("[Garage ERROR] Error deleting vehicle from array:", error);
@@ -1654,380 +1699,4 @@ async function addToWishlist(product) {
 
     try {
         const userGarageDocSnap = await getDoc(userGarageDocRef);
-        let currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
-
-        // Check if product already exists in wishlist using its 'id' field
-        const exists = currentWishlist.some(item => item.id === product.id);
-
-        if (!exists) {
-            const productWithTimestamp = { ...product, addedAt: Date.now() };
-
-            if (!userGarageDocSnap.exists()) {
-                // If garage document doesn't exist, create it with this first wishlist item
-                await setDoc(userGarageDocRef, {
-                    [FIRESTORE_WISHLIST_FIELD]: [productWithTimestamp],
-                    [FIRESTORE_VEHICLES_FIELD]: [], // Also initialize vehicles field as empty array
-                    createdAt: serverTimestamp() // Add document creation timestamp
-                });
-            } else {
-                // If garage document exists, just update the wishlist array
-                await updateDoc(userGarageDocRef, {
-                    [FIRESTORE_WISHLIST_FIELD]: arrayUnion(productWithTimestamp)
-                });
-            }
-            showNotification(`${product.name} added to wishlist!`, "success");
-            if (document.querySelector('.page.active')?.id === 'wishlist') {
-                loadWishlist();
-            }
-        } else {
-            showNotification(`${product.name} is already in your wishlist.`, "info");
-        }
-    } catch (error) {
-        console.error("[Wishlist ERROR] Error adding to wishlist:", error);
-        showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
-    }
-}
-
-// Removes a product from the 'wishlist' array field within the garage document
-async function removeFromWishlist(productId, button) {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        showNotification("Please log in to manage your wishlist.", "error");
-        return;
-    }
-
-    setButtonLoading(button, true);
-
-    try {
-        const userGarageDocSnap = await getDoc(userGarageDocRef);
-        const currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
-
-        // Find the exact item to remove from the array by its 'id'
-        const itemToRemove = currentWishlist.find(item => item.id === productId);
-
-        if (itemToRemove) {
-            await updateDoc(userGarageDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove)
-            });
-            showNotification("Product removed from wishlist.", "info");
-            loadWishlist();
-        } else {
-            showNotification("Product not found in wishlist (already removed?).", "info");
-        }
-    } catch (error) {
-        console.error("[Wishlist ERROR] Error removing from wishlist:", error);
-        showNotification("Failed to remove product from wishlist: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-// Clears all items from the 'wishlist' array field within the garage document
-async function clearWishlist(button) {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        showNotification("Please log in to clear your wishlist.", "error");
-        return;
-    }
-
-    setButtonLoading(button, true);
-
-    try {
-        // We only clear if the document exists. If it doesn't, there's nothing to clear.
-        const userGarageDocSnap = await getDoc(userGarageDocRef);
-        if (userGarageDocSnap.exists()) {
-            await updateDoc(userGarageDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: []
-            });
-            showNotification("Wishlist cleared!", "info");
-        } else {
-            showNotification("Your wishlist is already empty.", "info");
-        }
-        loadWishlist();
-    } catch (error) {
-        console.error("[Wishlist ERROR] Error clearing wishlist:", error);
-        showNotification("Failed to clear wishlist: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-// Fetches wishlist items from the user's dedicated 'garages' document (as an array field)
-async function getWishlistFromFirestore() {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        console.log("[Firestore] getWishlistFromFirestore: Not logged in, returning empty array.");
-        return [];
-    }
-
-    try {
-        const docSnap = await getDoc(userGarageDocRef);
-        if (docSnap.exists()) {
-            return docSnap.data()[FIRESTORE_WISHLIST_FIELD] || [];
-        }
-        return [];
-    } catch (error) {
-        console.error("[Firestore ERROR] Error getting wishlist from Firestore:", error);
-        showNotification("Error loading wishlist.", "error");
-        return [];
-    }
-}
-
-// Loads and displays all user-specific data on the Profile page
-async function loadProfile() {
-    // Basic account info
-    const profileEmailSpan = document.getElementById('profileEmail');
-    const profileDisplayNameSpan = document.getElementById('profileDisplayName');
-
-    // Personal Info inputs
-    const firstNameInput = document.getElementById('firstNameInput');
-    const lastNameInput = document.getElementById('lastNameInput');
-    const phoneInput = document.getElementById('phoneInput');
-    const addressInput = document.getElementById('addressInput');
-    const cityInput = document.getElementById('cityInput');
-    const stateInput = document.getElementById('stateInput');
-    const zipInput = document.getElementById('zipInput');
-    const countryInput = document.getElementById('countryInput');
-
-    // Preferences
-    const newsletterCheckbox = document.getElementById('newsletterCheckbox');
-
-    if (!profileEmailSpan || !profileDisplayNameSpan || !firstNameInput || !lastNameInput ||
-        !phoneInput || !addressInput || !cityInput || !stateInput || !zipInput || !countryInput ||
-        !newsletterCheckbox || !profileSavedVehiclesList || !orderHistoryList) {
-        console.warn("[Profile] Profile page DOM elements not fully loaded or missing. Retrying after DOMContentLoaded if needed.");
-        document.addEventListener('DOMContentLoaded', loadProfile);
-        return;
-    }
-
-    const user = auth.currentUser;
-    if (user) {
-        profileEmailSpan.textContent = user.email;
-        profileDisplayNameSpan.textContent = user.displayName || 'Not set';
-
-        const userProfileDocRef = getUserProfileDocRef();
-
-        try {
-            const docSnap = await getDoc(userProfileDocRef);
-            if (docSnap.exists()) {
-                const userData = docSnap.data();
-                firstNameInput.value = userData.firstName || '';
-                lastNameInput.value = userData.lastName || '';
-                phoneInput.value = userData.phone || '';
-                addressInput.value = userData.address || '';
-                cityInput.value = userData.city || '';
-                stateInput.value = userData.state || '';
-                zipInput.value = userData.zip || '';
-                countryInput.value = userData.country || '';
-
-                newsletterCheckbox.checked = userData.newsletterSubscription || false;
-                console.log("[Profile] Profile data loaded from Firestore.");
-            } else {
-                console.log("[Profile] No custom profile data found for this user. Fields will be empty.");
-                firstNameInput.value = '';
-                lastNameInput.value = '';
-                phoneInput.value = '';
-                addressInput.value = '';
-                cityInput.value = '';
-                stateInput.value = '';
-                zipInput.value = '';
-                countryInput.value = '';
-                newsletterCheckbox.checked = false;
-            }
-
-            await loadProfileVehicles(user.uid);
-            loadOrderHistory(user.uid);
-
-        } catch (error) {
-            console.error("[Profile ERROR] Error loading profile data:", error);
-            showNotification("Error loading profile data. Please try again.", "error");
-        }
-
-    } else {
-        profileEmailSpan.textContent = 'Not logged in';
-        profileDisplayNameSpan.textContent = 'Not set';
-        firstNameInput.value = '';
-        lastNameInput.value = '';
-        phoneInput.value = '';
-        addressInput.value = '';
-        cityInput.value = '';
-        stateInput.value = '';
-        zipInput.value = '';
-        countryInput.value = '';
-        newsletterCheckbox.checked = false;
-
-        if (profileSavedVehiclesList) {
-            profileSavedVehiclesList.innerHTML = '<p id="noProfileVehiclesMessage" class="no-items-message">Please log in to see your saved vehicles.</p>';
-        }
-        if (orderHistoryList) {
-            orderHistoryList.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
-        }
-        showNotification("Please log in to view your profile.", "info");
-    }
-}
-
-// Function to load and display saved vehicles on the Profile page
-async function loadProfileVehicles(userId) {
-    const vehiclesListDiv = document.getElementById('profileSavedVehiclesList');
-    const noVehiclesMessageElement = document.getElementById('noProfileVehiclesMessage');
-
-    if (!vehiclesListDiv || !noVehiclesMessageElement) {
-        console.warn("[DOM] Profile vehicles display elements not found (loadProfileVehicles).");
-        return;
-    }
-
-    vehiclesListDiv.innerHTML = '';
-    noVehiclesMessageElement.textContent = 'Loading your saved vehicles...';
-    noVehiclesMessageElement.style.display = 'block';
-    vehiclesListDiv.appendChild(noVehiclesMessageElement);
-
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        noVehiclesMessageElement.textContent = 'Please log in to see your saved vehicles.';
-        return;
-    }
-
-    try {
-        const docSnap = await getDoc(userGarageDocRef);
-        const vehicles = docSnap.exists() ? docSnap.data()[FIRESTORE_VEHICLES_FIELD] || [] : [];
-
-        if (vehicles.length === 0) {
-            noVehiclesMessageElement.textContent = 'No vehicles saved yet. Go to My Garage to add one!';
-            noVehiclesMessageElement.style.display = 'block';
-            vehiclesListDiv.innerHTML = '';
-            vehiclesListDiv.appendChild(noVehiclesMessageElement);
-            return;
-        }
-
-        vehiclesListDiv.innerHTML = '';
-        vehicles.forEach((vehicle, index) => {
-            const vehicleCard = document.createElement('div');
-            vehicleCard.className = 'vehicle-card-profile card';
-            vehicleCard.setAttribute('data-vehicle-index', index);
-            vehicleCard.innerHTML = `
-                <div class="vehicle-info">
-                    <h5>${vehicle.year} ${vehicle.make} ${vehicle.model}</h5>
-                    <p>Make: ${vehicle.make}</p>
-                    <p>Model: ${vehicle.model}</p>
-                    <p>Year: ${vehicle.year}</p>
-                </div>
-                <button class="delete-vehicle-btn-profile"
-                        data-vehicle-index="${index}"
-                        data-make="${vehicle.make}"
-                        data-model="${vehicle.model}"
-                        data-year="${vehicle.year}"
-                        data-created-at="${vehicle.createdAt}"
-                        aria-label="Remove ${vehicle.year} ${vehicle.make} ${vehicle.model} from profile">Remove</button>
-            `;
-            vehiclesListDiv.appendChild(vehicleCard);
-        });
-
-        vehiclesListDiv.querySelectorAll('.delete-vehicle-btn-profile').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const vehicleToDelete = {
-                    make: e.target.dataset.make,
-                    model: e.target.dataset.model,
-                    year: parseInt(e.target.dataset.year),
-                    createdAt: parseInt(e.target.dataset.createdAt) // Make sure this matches the type in Firestore (number from Date.now())
-                };
-                if (confirm('Are you sure you want to remove this vehicle from your garage?')) {
-                    const user = auth.currentUser;
-                    if (user) {
-                        try {
-                            await deleteVehicleFromArray(vehicleToDelete, e.target);
-                            showNotification('Vehicle removed from your garage.', 'success');
-                            loadProfileVehicles(user.uid);
-                        } catch (error) {
-                            console.error('[Profile ERROR] Error removing vehicle from profile:', error);
-                            showNotification('Failed to remove vehicle from profile.', 'error');
-                        }
-                    }
-                }
-            });
-        });
-
-    } catch (error) {
-        console.error("[Profile ERROR] Error loading profile vehicles:", error);
-        noVehiclesMessageElement.textContent = 'Error loading your saved vehicles. Please try again.';
-        noVehiclesMessageElement.style.display = 'block';
-        vehiclesListDiv.appendChild(noVehiclesMessageElement);
-        showNotification("Error loading saved vehicles for profile: " + error.message, "error");
-    }
-}
-
-
-// Placeholder function for loading order history
-function loadOrderHistory(userId) {
-    const orderListDiv = document.getElementById('orderHistoryList');
-    if (!orderListDiv) {
-        console.warn("[DOM] Order history list element not found (loadOrderHistory).");
-        return;
-    }
-
-    if (userId) {
-        orderListDiv.innerHTML = '<p class="no-items-message">Loading order history...</p>';
-        console.log(`[Firestore] Attempting to load order history for user: ${userId}`);
-
-        // If you're ready to implement actual order history:
-        /*
-        const ordersCollectionRef = collection(db, 'orders');
-        const q = query(ordersCollectionRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-
-        getDocs(q).then(snapshot => {
-            if (snapshot.empty) {
-                orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
-                console.log("[Firestore] No orders found for user.");
-                return;
-            }
-            orderListDiv.innerHTML = '';
-            console.log(`[Firestore] Found ${snapshot.docs.length} orders.`);
-            snapshot.forEach(orderDoc => {
-                const order = orderDoc.data();
-                const orderCard = document.createElement('div');
-                orderCard.className = 'card order-card';
-                orderCard.innerHTML = `
-                    <h5>Order #${orderDoc.id.substring(0, 8)}</h5>
-                    <p>Date: ${order.createdAt ? new Date(order.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
-                    <p>Total: $${order.total ? order.total.toFixed(2) : 'N/A'}</p>
-                    <p>Status: ${order.status || 'Processing'}</p>
-                    <button class="view-order-details-btn">View Details</button>
-                `;
-                orderListDiv.appendChild(orderCard);
-            });
-        }).catch(error => {
-            console.error("[Firestore ERROR] Error loading order history:", error);
-            orderListDiv.innerHTML = '<p class="no-items-message">Error loading order history.</p>';
-            showNotification("Error loading order history.", "error");
-        });
-        */
-        setTimeout(() => {
-            orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
-        }, 500);
-
-    } else {
-        orderListDiv.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
-        console.log("[OrderHistory] User not logged in. Displaying login prompt for orders.");
-    }
-}
-
-
-function checkPasswordStrength(password) {
-    let score = 0;
-    if (password.length > 5) score++;
-    if (password.length > 7) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-
-    if (score < 3) return 'weak';
-    if (score < 5) return 'medium';
-    return 'strong';
-}
-
-function updatePasswordStrengthIndicator(strength) {
-    if (document.getElementById('passwordStrength')) {
-        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
-        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
-    }
-}
+        let currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIREST
