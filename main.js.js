@@ -1301,15 +1301,783 @@ async function deleteVehicleFromArray(vehicleToDelete, button) {
         });
         showNotification(`Vehicle "${vehicleToDelete.year} ${vehicleToDelete.make} ${vehicleToDelete.model}" deleted.`, 'info');
         setTimeout(async () => {
-                        await renderSavedVehicles();
-                        await loadVehicleForProducts();
-                    });
-                }
-                catch (error) {
-                    console.error("[Garage ERROR] Error deleting vehicle:", error);
-                    showNotification("Error deleting vehicle: " + error.message, "error", 5000);
-                }
-                finally {
-                    setButtonLoading(button, false);
-                }
+            await renderSavedVehicles();
+            await loadVehicleForProducts();
+            await loadProfileVehicles(auth.currentUser.uid);
+            checkAndShowGreaseMonkeyBanner();
+        }, 500);
+    } catch (error) {
+        console.error("[Garage ERROR] Error deleting vehicle from array:", error);
+        showNotification("Error deleting vehicle: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+const NHTSA_API_BASE_URL = 'https://vpic.nhtsa.dot.gov/api/vehicles';
+
+async function fetchMakes() {
+    if (!makeSelect) {
+        console.warn("[API] Make select element not found.");
+        return;
+    }
+    makeSelect.innerHTML = '<option value="">-- Loading Makes... --</option>';
+    makeSelect.disabled = true;
+
+    try {
+        const response = await fetch(`${NHTSA_API_BASE_URL}/GetAllMakes?format=json`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const makes = data.Results;
+        const filteredMakes = makes.filter(make =>
+            VALID_MAKES_WHITELIST.some(allowedMake =>
+                make.Make_Name.toLowerCase() === allowedMake.toLowerCase()
+            )
+        );
+
+        makeSelect.innerHTML = '<option value="">-- Select Make --</option>';
+        if (filteredMakes.length > 0) {
+            filteredMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name));
+            filteredMakes.forEach(make => {
+                const option = document.createElement('option');
+                option.value = make.Make_Name;
+                option.textContent = make.Make_Name;
+                makeSelect.appendChild(option);
+            });
+            makeSelect.disabled = false;
+        } else {
+            showNotification('No matching makes found based on your filter list.', 'info');
+            makeSelect.innerHTML = '<option value="">-- No Makes Found --</option>';
+            makeSelect.disabled = true;
+        }
+
+    } catch (error) {
+        console.error('Error fetching and filtering makes:', error);
+        showNotification('Failed to load vehicle makes. Please try again later.', 'error');
+        makeSelect.innerHTML = '<option value="">-- Error Loading Makes --</option>';
+        makeSelect.disabled = true;
+    }
+}
+
+async function fetchModelsByMake(makeName) {
+    if (!modelSelect || !yearSelect) {
+        console.warn("[API] Model or Year select elements not found.");
+        return;
+    }
+    modelSelect.innerHTML = '<option value="">-- Loading Models... --</option>';
+    modelSelect.disabled = true;
+    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+    yearSelect.disabled = true;
+
+    if (!makeName) {
+        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
+        modelSelect.disabled = true;
+        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+        yearSelect.disabled = true;
+        return;
+    }
+
+    try {
+        const encodedMakeName = encodeURIComponent(makeName);
+        const response = await fetch(`${NHTSA_API_BASE_URL}/GetModelsForMake/${encodedMakeName}?format=json`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const models = data.Results;
+
+        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
+        if (models && models.length > 0) {
+            models.sort((a, b) => a.Model_Name.localeCompare(b.Model_Name));
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.Model_Name;
+                option.textContent = model.Model_Name;
+                modelSelect.appendChild(option);
+            });
+            modelSelect.disabled = false;
+        } else {
+            showNotification(`No models found for ${makeName}.`, 'info');
+            modelSelect.innerHTML = '<option value="">-- No Models Found --</option>';
+            modelSelect.disabled = true;
+        }
+        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+        yearSelect.disabled = true;
+    } catch (error) {
+        console.error('Error fetching models:', error);
+        showNotification(`Failed to load models for ${makeName}. Please try again.`, 'error');
+        modelSelect.innerHTML = '<option value="">-- Error Loading Models --</option>';
+        modelSelect.disabled = true;
+        yearSelect.disabled = true;
+    }
+}
+
+function populateYears() {
+    if (!yearSelect) {
+        console.warn("[API] Year select element not found.");
+        return;
+    }
+    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear + 1; year >= currentYear - 30; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+    }
+    yearSelect.disabled = false;
+}
+
+async function fetchVehicleDetailsByVin(vin) {
+    const url = `${NHTSA_API_BASE_URL}/DecodeVin/${encodeURIComponent(vin)}?format=json`;
+    console.log(`[API] Fetching VIN details for: ${vin}`);
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (data.Errors && data.Errors.length > 0) {
+            console.error("[API] NHTSA VIN Decode API returned errors:", data.Errors.map(e => e.Message).join(", "));
+            if (data.Errors.some(e => e.Message.includes("Invalid VIN") || e.Message.includes("Not Found"))) {
+                 return null;
             }
+            throw new Error(data.Errors.map(e => e.Message).join(", "));
+        }
+
+        if (data.Results && data.Results.length > 0) {
+            const results = data.Results;
+            const makeEntry = results.find(item => item.Variable === "Make");
+            const modelEntry = results.find(item => item.Variable === "Model");
+            const modelYearEntry = results.find(item => item.Variable === "Model Year");
+
+            const make = makeEntry ? makeEntry.Value : null;
+            const model = modelEntry ? modelEntry.Value : null;
+            const year = modelYearEntry ? parseInt(modelYearEntry.Value) : null;
+
+            if (make && model && year) {
+                console.log(`[API] VIN lookup successful: ${year} ${make} ${model}`);
+                return { make, model, year };
+            } else {
+                console.warn("[API] Partial VIN details found or missing key info:", { make, model, year, results });
+                return null;
+            }
+        } else {
+            console.warn("[API] No results found for VIN:", vin);
+            return null;
+        }
+    } catch (error) {
+        console.error(`[API ERROR] Error decoding VIN ${vin}:`, error);
+        throw error;
+    }
+}
+
+async function loadVehicleForProducts() {
+    const productContentDiv = document.getElementById('productContent');
+    if (!productContentDiv) {
+        console.warn("[DOM] Product content div not found for loadVehicleForProducts.");
+        return;
+    }
+
+    productContentDiv.innerHTML = '<p class="no-items-message">Loading vehicle search options...</p>';
+
+    if (!auth.currentUser) {
+        productContentDiv.innerHTML = `
+            <div class="no-vehicle-message">
+                <h3>Please Log In or Save Your Vehicle</h3>
+                <p>To get personalized part searches, please <a href="#" onclick="showPage('auth')">log in</a> or go to <a href="#" onclick="showPage('garage')">My Garage</a> to save your vehicle details.</p>
+            </div>
+        `;
+        selectedVehicleForSearch = null;
+        return;
+    }
+
+    try {
+        const vehicles = await getSavedVehiclesFromFirestore();
+
+        if (vehicles.length > 0) {
+            if (!selectedVehicleForSearch || !vehicles.some(v =>
+                v.make === selectedVehicleForSearch.make &&
+                v.model === selectedVehicleForSearch.model &&
+                v.year === selectedVehicleForSearch.year)
+            ) {
+                selectedVehicleForSearch = vehicles[0];
+            }
+
+            let vehicleOptionsHtml = vehicles.map((v, index) => `
+                <option value="${index}" ${
+                    (selectedVehicleForSearch && vehicles.indexOf(selectedVehicleForSearch) === index)
+                    ? 'selected' : ''
+                }>
+                    ${v.year} ${v.make} ${v.model}
+                </option>
+            `).join('');
+
+            let htmlContent = `
+                <div class="select-vehicle-container">
+                    <label for="vehicleSelect">Select Your Vehicle:</label>
+                    <select id="vehicleSelect">
+                        ${vehicleOptionsHtml}
+                    </select>
+                </div>
+                <h3 style="text-align: center; margin-top: 2rem;">Parts for Your <span id="currentSearchVehicle">${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}</span></h3>
+                <div class="general-search-section">
+                    <label for="generalProductSearch" class="sr-only">Search Parts by Keyword</label>
+                    <input type="text" id="generalProductSearch" placeholder="Search for any part (e.g., 'alternator')" />
+                    <button id="generalSearchButton">Search</button>
+                </div>
+                <p style="text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;">Or click a category below to search Amazon directly for your vehicle:</p>
+                <div class="category-buttons">
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Brake Pads')">Brake Pads</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Oil Filter')">Oil Filter</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Air Filter')">Air Filter</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Spark Plugs')">Spark Plugs</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Suspension Kit')">Suspension Kit</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Headlights')">Headlights</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Tail Lights')">Tail Lights</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Windshield Wipers')">Wiper Blades</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Radiator')">Radiator</button>
+                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Battery')">Battery</button>
+                    </div>
+            `;
+            productContentDiv.innerHTML = htmlContent;
+
+            const vehicleSelect = document.getElementById('vehicleSelect');
+            const currentSearchVehicleSpan = document.getElementById('currentSearchVehicle');
+
+            if (vehicleSelect) {
+                vehicleSelect.addEventListener('change', (event) => {
+                    const selectedIndex = parseInt(event.target.value);
+                    selectedVehicleForSearch = vehicles[selectedIndex];
+                    if (currentSearchVehicleSpan) {
+                         currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
+                    }
+                });
+            }
+
+            const generalSearchInput = document.getElementById('generalProductSearch');
+            const generalSearchButton = document.getElementById('generalSearchButton');
+
+            if (generalSearchInput && generalSearchButton) {
+                generalSearchInput.addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        window.searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
+                    }
+                });
+
+                generalSearchButton.addEventListener('click', () => {
+                    window.searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
+                });
+            }
+
+
+        } else {
+            productContentDiv.innerHTML = `
+                <div class="no-vehicle-message">
+                    <h3>No Vehicle Saved</h3>
+                    <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
+                </div>
+            `;
+             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
+        }
+    } catch (err) {
+        console.error("[Product ERROR] Error loading vehicle for products page:", err);
+        productContentDiv.innerHTML = `
+            <div class="no-vehicle-message">
+                <h3>Error Loading Vehicle</h3>
+                <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
+            </div>
+        `;
+        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
+    }
+}
+
+// --- NEW: Functions for the AI Assistant Page ---
+async function loadAIAssistantPage() {
+    const aiIntro = document.getElementById('aiIntro');
+    const aiAssistantForm = document.getElementById('aiAssistantForm');
+    const aiResponseContainer = document.getElementById('aiResponseContainer');
+
+    if (!auth.currentUser) {
+        aiIntro.innerHTML = `<p class="no-items-message">Please <a href="#" onclick="showPage('auth')">log in</a> to use the Grease Monkey AI assistant.</p>`;
+        aiAssistantForm.style.display = 'none';
+        return;
+    }
+
+    try {
+        const vehicles = await getSavedVehiclesFromFirestore();
+        if (vehicles.length === 0) {
+            aiIntro.innerHTML = `<p class="no-items-message">Please save a vehicle in your <a href="#" onclick="showPage('garage')">My Garage</a> to get started!</p>`;
+            aiAssistantForm.style.display = 'none';
+        } else {
+            let vehicleOptionsHtml = vehicles.map((v, index) => `
+                <option value="${index}">
+                    ${v.year} ${v.make} ${v.model}
+                </option>
+            `).join('');
+
+            aiIntro.innerHTML = `
+                <p>
+                    Select your vehicle and describe the problem you're experiencing. Our AI will provide a step-by-step
+                    diagnosis and suggest the parts you need to fix it.
+                </p>
+                <div id="aiVehicleInfo">
+                    <label for="aiVehicleSelect">Select your vehicle:</label>
+                    <select id="aiVehicleSelect">
+                        ${vehicleOptionsHtml}
+                    </select>
+                </div>
+            `;
+            aiAssistantForm.style.display = 'block';
+            aiResponseContainer.style.display = 'none'; // Hide response container initially
+            aiVehicleSelect = document.getElementById('aiVehicleSelect');
+        }
+    } catch (error) {
+        console.error("[AI Assistant] Error loading AI assistant page:", error);
+        aiIntro.innerHTML = `<p class="no-items-message">Error loading AI assistant page. Please try again.</p>`;
+        aiAssistantForm.style.display = 'none';
+    }
+}
+
+async function getGreaseMonkeyDiagnosis(vehicle, problem) {
+    const submitBtn = document.getElementById('aiSubmitBtn');
+    if (!submitBtn) return;
+    setButtonLoading(submitBtn, true);
+
+    try {
+        // Replace with your deployed backend URL
+        const backendUrl = 'http://localhost:3000';
+        
+        const response = await fetch(`${backendUrl}/api/troubleshoot`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vehicle, problem })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`AI backend request failed: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log("AI Response:", data);
+        renderAIResponse(data);
+    } catch (error) {
+        console.error("Failed to get AI diagnosis:", error);
+        showNotification('Failed to get an AI diagnosis. Please try again later.', 'error');
+        renderAIResponse({
+            diagnosis: "Sorry, I am unable to provide a diagnosis at this time. Please check your backend server logs.",
+            steps: [],
+            parts: []
+        });
+    } finally {
+        setButtonLoading(submitBtn, false);
+    }
+}
+
+function renderAIResponse(response) {
+    if (!aiResponseContent || !aiPartsLinks || !aiResponseContainer) return;
+
+    aiResponseContent.innerHTML = '';
+    aiPartsLinks.innerHTML = '';
+    aiResponseContainer.style.display = 'block';
+
+    let diagnosisHtml = `
+        <p><strong>Diagnosis:</strong> ${response.diagnosis}</p>
+    `;
+    aiResponseContent.innerHTML += diagnosisHtml;
+
+    if (response.steps && response.steps.length > 0) {
+        let stepsHtml = `
+            <p><strong>Steps:</strong></p>
+            <ol>
+                ${response.steps.map(step => `<li>${step}</li>`).join('')}
+            </ol>
+        `;
+        aiResponseContent.innerHTML += stepsHtml;
+    }
+
+    if (response.parts && response.parts.length > 0) {
+        let partsHtml = `
+            <p><strong>Suggested Parts:</strong></p>
+        `;
+        aiResponseContent.innerHTML += partsHtml;
+
+        response.parts.forEach(part => {
+            const vehicle = selectedVehicleForSearch;
+            const button = document.createElement('button');
+            button.className = 'search-parts-btn';
+            button.textContent = part;
+            button.addEventListener('click', () => {
+                window.searchAmazonSpecific(vehicle.year, vehicle.make, vehicle.model, part);
+            });
+            aiPartsLinks.appendChild(button);
+        });
+    }
+}
+
+
+// --- Globally accessible search functions ---
+window.searchAmazonSpecific = function(year, make, model, partType) {
+    const query = `${partType} ${year} ${make} ${model}`;
+    const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+    window.open(url, "_blank");
+}
+
+window.searchAmazonGeneral = function(year, make, model) {
+    const searchInput = document.getElementById('generalProductSearch');
+    let query = searchInput.value.trim();
+
+    if (query) {
+        query = `${query} ${year} ${make} ${model}`;
+        const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
+        window.open(url, "_blank");
+        searchInput.value = '';
+    } else {
+        showNotification("Please enter a search term.", "info");
+    }
+}
+
+// Adds a product to the 'wishlist' array field within the garage document
+async function addToWishlist(product) {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        showNotification("Please log in to add items to your wishlist.", "error");
+        return;
+    }
+
+    try {
+        const userGarageDocSnap = await getDoc(userGarageDocRef);
+        let currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
+
+        const exists = currentWishlist.some(item => item.id === product.id);
+
+        if (!exists) {
+            const productWithTimestamp = { ...product, addedAt: Date.now() };
+
+            if (!userGarageDocSnap.exists()) {
+                await setDoc(userGarageDocRef, {
+                    [FIRESTORE_WISHLIST_FIELD]: [productWithTimestamp],
+                    [FIRESTORE_VEHICLES_FIELD]: [],
+                    createdAt: serverTimestamp()
+                });
+            } else {
+                await updateDoc(userGarageDocRef, {
+                    [FIRESTORE_WISHLIST_FIELD]: arrayUnion(productWithTimestamp)
+                });
+            }
+            showNotification(`${product.name} added to wishlist!`, "success");
+            if (document.querySelector('.page.active')?.id === 'wishlist') {
+                loadWishlist();
+            }
+        } else {
+            showNotification(`${product.name} is already in your wishlist.`, "info");
+        }
+    } catch (error) {
+        console.error("[Wishlist ERROR] Error adding to wishlist:", error);
+        showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
+    }
+}
+
+// Removes a product from the 'wishlist' array field within the garage document
+async function removeFromWishlist(productId, button) {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        showNotification("Please log in to manage your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        const userGarageDocSnap = await getDoc(userGarageDocRef);
+        const currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
+        const itemToRemove = currentWishlist.find(item => item.id === productId);
+
+        if (itemToRemove) {
+            await updateDoc(userGarageDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove)
+            });
+            showNotification("Product removed from wishlist.", "info");
+            loadWishlist();
+        } else {
+            showNotification("Product not found in wishlist (already removed?).", "info");
+        }
+    } catch (error) {
+        console.error("[Wishlist ERROR] Error removing from wishlist:", error);
+        showNotification("Failed to remove product from wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+// Clears all items from the 'wishlist' array field within the garage document
+async function clearWishlist(button) {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        showNotification("Please log in to clear your wishlist.", "error");
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        const userGarageDocSnap = await getDoc(userGarageDocRef);
+        if (userGarageDocSnap.exists()) {
+            await updateDoc(userGarageDocRef, {
+                [FIRESTORE_WISHLIST_FIELD]: []
+            });
+            showNotification("Wishlist cleared!", "info");
+        } else {
+            showNotification("Your wishlist is already empty.", "info");
+        }
+        loadWishlist();
+    } catch (error) {
+        console.error("[Wishlist ERROR] Error clearing wishlist:", error);
+        showNotification("Failed to clear wishlist: " + error.message, "error");
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function getWishlistFromFirestore() {
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        console.log("[Firestore] getWishlistFromFirestore: Not logged in, returning empty array.");
+        return [];
+    }
+
+    try {
+        const docSnap = await getDoc(userGarageDocRef);
+        if (docSnap.exists()) {
+            return docSnap.data()[FIRESTORE_WISHLIST_FIELD] || [];
+        }
+        return [];
+    } catch (error) {
+        console.error("[Firestore ERROR] Error getting wishlist from Firestore:", error);
+        showNotification("Error loading wishlist.", "error");
+        return [];
+    }
+}
+
+async function loadProfile() {
+    const profileEmailSpan = document.getElementById('profileEmail');
+    const profileDisplayNameSpan = document.getElementById('profileDisplayName');
+    const firstNameInput = document.getElementById('firstNameInput');
+    const lastNameInput = document.getElementById('lastNameInput');
+    const phoneInput = document.getElementById('phoneInput');
+    const addressInput = document.getElementById('addressInput');
+    const cityInput = document.getElementById('cityInput');
+    const stateInput = document.getElementById('stateInput');
+    const zipInput = document.getElementById('zipInput');
+    const countryInput = document.getElementById('countryInput');
+    const newsletterCheckbox = document.getElementById('newsletterCheckbox');
+
+    if (!profileEmailSpan || !profileDisplayNameSpan || !firstNameInput || !lastNameInput ||
+        !phoneInput || !addressInput || !cityInput || !stateInput || !zipInput || !countryInput ||
+        !newsletterCheckbox || !profileSavedVehiclesList || !orderHistoryList) {
+        console.warn("[Profile] Profile page DOM elements not fully loaded or missing. Retrying after DOMContentLoaded if needed.");
+        document.addEventListener('DOMContentLoaded', loadProfile);
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+        profileEmailSpan.textContent = user.email;
+        profileDisplayNameSpan.textContent = user.displayName || 'Not set';
+        const userProfileDocRef = getUserProfileDocRef();
+
+        try {
+            const docSnap = await getDoc(userProfileDocRef);
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                firstNameInput.value = userData.firstName || '';
+                lastNameInput.value = userData.lastName || '';
+                phoneInput.value = userData.phone || '';
+                addressInput.value = userData.address || '';
+                cityInput.value = userData.city || '';
+                stateInput.value = userData.state || '';
+                zipInput.value = userData.zip || '';
+                countryInput.value = userData.country || '';
+                newsletterCheckbox.checked = userData.newsletterSubscription || false;
+                console.log("[Profile] Profile data loaded from Firestore.");
+            } else {
+                console.log("[Profile] No custom profile data found for this user. Fields will be empty.");
+                firstNameInput.value = '';
+                lastNameInput.value = '';
+                phoneInput.value = '';
+                addressInput.value = '';
+                cityInput.value = '';
+                stateInput.value = '';
+                zipInput.value = '';
+                countryInput.value = '';
+                newsletterCheckbox.checked = false;
+            }
+
+            await loadProfileVehicles(user.uid);
+            loadOrderHistory(user.uid);
+
+        } catch (error) {
+            console.error("[Profile ERROR] Error loading profile data:", error);
+            showNotification("Error loading profile data. Please try again.", "error");
+        }
+
+    } else {
+        profileEmailSpan.textContent = 'Not logged in';
+        profileDisplayNameSpan.textContent = 'Not set';
+        firstNameInput.value = '';
+        lastNameInput.value = '';
+        phoneInput.value = '';
+        addressInput.value = '';
+        cityInput.value = '';
+        stateInput.value = '';
+        zipInput.value = '';
+        countryInput.value = '';
+        newsletterCheckbox.checked = false;
+
+        if (profileSavedVehiclesList) {
+            profileSavedVehiclesList.innerHTML = '<p id="noProfileVehiclesMessage" class="no-items-message">Please log in to see your saved vehicles.</p>';
+        }
+        if (orderHistoryList) {
+            orderHistoryList.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
+        }
+        showNotification("Please log in to view your profile.", "info");
+    }
+}
+
+async function loadProfileVehicles(userId) {
+    const vehiclesListDiv = document.getElementById('profileSavedVehiclesList');
+    const noVehiclesMessageElement = document.getElementById('noProfileVehiclesMessage');
+
+    if (!vehiclesListDiv || !noVehiclesMessageElement) {
+        console.warn("[DOM] Profile vehicles display elements not found (loadProfileVehicles).");
+        return;
+    }
+
+    vehiclesListDiv.innerHTML = '';
+    noVehiclesMessageElement.textContent = 'Loading your saved vehicles...';
+    noVehiclesMessageElement.style.display = 'block';
+    vehiclesListDiv.appendChild(noVehiclesMessageElement);
+
+    const userGarageDocRef = getUserGarageDocRefForArrays();
+    if (!userGarageDocRef) {
+        noVehiclesMessageElement.textContent = 'Please log in to see your saved vehicles.';
+        return;
+    }
+
+    try {
+        const docSnap = await getDoc(userGarageDocRef);
+        const vehicles = docSnap.exists() ? docSnap.data()[FIRESTORE_VEHICLES_FIELD] || [] : [];
+
+        if (vehicles.length === 0) {
+            noVehiclesMessageElement.textContent = 'No vehicles saved yet. Go to My Garage to add one!';
+            noVehiclesMessageElement.style.display = 'block';
+            vehiclesListDiv.innerHTML = '';
+            vehiclesListDiv.appendChild(noVehiclesMessageElement);
+            return;
+        }
+
+        vehiclesListDiv.innerHTML = '';
+        vehicles.forEach((vehicle, index) => {
+            const vehicleCard = document.createElement('div');
+            vehicleCard.className = 'vehicle-card-profile card';
+            vehicleCard.setAttribute('data-vehicle-index', index);
+            vehicleCard.innerHTML = `
+                <div class="vehicle-info">
+                    <h5>${vehicle.year} ${vehicle.make} ${vehicle.model}</h5>
+                    <p>Make: ${vehicle.make}</p>
+                    <p>Model: ${vehicle.model}</p>
+                    <p>Year: ${vehicle.year}</p>
+                </div>
+                <button class="delete-vehicle-btn-profile"
+                        data-vehicle-index="${index}"
+                        data-make="${vehicle.make}"
+                        data-model="${vehicle.model}"
+                        data-year="${vehicle.year}"
+                        data-created-at="${vehicle.createdAt}"
+                        aria-label="Remove ${vehicle.year} ${vehicle.make} ${vehicle.model} from profile">Remove</button>
+            `;
+            vehiclesListDiv.appendChild(vehicleCard);
+        });
+
+        vehiclesListDiv.querySelectorAll('.delete-vehicle-btn-profile').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const vehicleToDelete = {
+                    make: e.target.dataset.make,
+                    model: e.target.dataset.model,
+                    year: parseInt(e.target.dataset.year),
+                    createdAt: parseInt(e.target.dataset.createdAt)
+                };
+                if (confirm('Are you sure you want to remove this vehicle from your garage?')) {
+                    const user = auth.currentUser;
+                    if (user) {
+                        try {
+                            await deleteVehicleFromArray(vehicleToDelete, e.target);
+                            showNotification('Vehicle removed from your garage.', 'success');
+                            loadProfileVehicles(user.uid);
+                        } catch (error) {
+                            console.error('[Profile ERROR] Error removing vehicle from profile:', error);
+                            showNotification('Failed to remove vehicle from profile.', 'error');
+                        }
+                    }
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("[Profile ERROR] Error loading profile vehicles:", error);
+        noVehiclesMessageElement.textContent = 'Error loading your saved vehicles. Please try again.';
+        noVehiclesMessageElement.style.display = 'block';
+        vehiclesListDiv.appendChild(noVehiclesMessageElement);
+        showNotification("Error loading saved vehicles for profile: " + error.message, "error");
+    }
+}
+
+
+function loadOrderHistory(userId) {
+    const orderListDiv = document.getElementById('orderHistoryList');
+    if (!orderListDiv) {
+        console.warn("[DOM] Order history list element not found (loadOrderHistory).");
+        return;
+    }
+
+    if (userId) {
+        orderListDiv.innerHTML = '<p class="no-items-message">Loading order history...</p>';
+        console.log(`[Firestore] Attempting to load order history for user: ${userId}`);
+
+        setTimeout(() => {
+            orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
+        }, 500);
+
+    } else {
+        orderListDiv.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
+        console.log("[OrderHistory] User not logged in. Displaying login prompt for orders.");
+    }
+}
+
+
+function checkPasswordStrength(password) {
+    let score = 0;
+    if (password.length > 5) score++;
+    if (password.length > 7) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score < 3) return 'weak';
+    if (score < 5) return 'medium';
+    return 'strong';
+}
+
+function updatePasswordStrengthIndicator(strength) {
+    if (document.getElementById('passwordStrength')) {
+        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
+    }
+}
