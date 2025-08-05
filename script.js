@@ -58,19 +58,14 @@ let passwordStrengthIndicator;
 
 // --- Garage Form Elements (assigned in DOMContentLoaded) ---
 let garageForm;
-// REMOVED: makeInput; modelInput; yearInput; (these are now select elements)
 let savedVehiclesContainer;
 let noVehiclesMessage;
-
-// NEW: New select elements for vehicle API integration
 let makeSelect;
 let modelSelect;
 let yearSelect;
-
-// NEW: Elements for adding by Tag Number (VIN)
-let vinInput; // Assuming 'tag number' will be a VIN for API lookup
+let vinInput;
 let addVinButton;
-let vinLookupMessage; // For displaying loading/error messages for VIN lookup
+let vinLookupMessage;
 
 // --- Wishlist Elements (assigned in DOMContentLoaded) ---
 let featuredProductsGrid;
@@ -103,15 +98,24 @@ let deleteAccountBtn;
 // --- Contact Form Elements (assigned in DOMContentLoaded) ---
 let contactForm;
 
+// NEW: AI Assistant Elements
+let aiAssistantForm;
+let aiVehicleInfo;
+let problemInput;
+let aiSubmitBtn;
+let aiResponseContainer;
+let aiResponseContent;
+let aiPartsLinks;
+let aiVehicleSelect; // New select element for AI page
+
 // Global variable for selected vehicle
 let selectedVehicleForSearch = null;
 
 // Firebase Firestore constants
-// These now refer to fields within the 'garages' document or the 'users' document
-const FIRESTORE_VEHICLES_FIELD = 'vehicles'; // Field name for vehicles array
-const FIRESTORE_WISHLIST_FIELD = 'wishlist'; // Field name for wishlist array
-const FIRESTORE_USERS_COLLECTION = 'users'; // Top-level collection for user profiles (general info)
-const FIRESTORE_GARAGES_COLLECTION = 'garages'; // Top-level collection for vehicle/wishlist data
+const FIRESTORE_VEHICLES_FIELD = 'vehicles';
+const FIRESTORE_WISHLIST_FIELD = 'wishlist';
+const FIRESTORE_USERS_COLLECTION = 'users';
+const FIRESTORE_GARAGES_COLLECTION = 'garages';
 const MAX_VEHICLES = 3;
 
 
@@ -129,7 +133,6 @@ window.showPage = function(id) {
     if (hamburgerMenu && hamburgerMenu.classList.contains('open')) {
         hamburgerMenu.classList.remove('open');
         navLinks.classList.remove('active');
-        // NEW: Update aria-expanded when closing the menu
         hamburgerMenu.setAttribute('aria-expanded', 'false');
     }
 
@@ -138,11 +141,13 @@ window.showPage = function(id) {
         loadVehicleForProducts();
     } else if (id === 'garage') {
         renderSavedVehicles();
-        fetchMakes(); // NEW: Call fetchMakes when Garage page is shown
+        fetchMakes();
     } else if (id === 'wishlist') {
         loadWishlist();
     } else if (id === 'profile') {
         loadProfile();
+    } else if (id === 'ai-assistant') {
+        loadAIAssistantPage(); // NEW: Load AI assistant page content
     }
 }
 
@@ -200,13 +205,13 @@ function clearAuthFields() {
     if (regPassInput) regPassInput.value = "";
 
     // Reset password toggle icon and attributes
-    if (toggleLoginPassBtn && loginPassInput) { // Check loginPassInput too, as its type is changed
+    if (toggleLoginPassBtn && loginPassInput) {
         loginPassInput.setAttribute('type', 'password');
         toggleLoginPassBtn.setAttribute('aria-label', 'Show password');
         toggleLoginPassBtn.setAttribute('aria-pressed', 'false');
         toggleLoginPassBtn.textContent = '👁️';
     }
-    if (toggleRegPassBtn && regPassInput) { // Check regPassInput too
+    if (toggleRegPassBtn && regPassInput) {
         regPassInput.setAttribute('type', 'password');
         toggleRegPassBtn.setAttribute('aria-label', 'Show password');
         toggleRegPassBtn.setAttribute('aria-pressed', 'false');
@@ -253,7 +258,7 @@ function setButtonLoading(button, isLoading) {
 onAuthStateChanged(auth, user => {
     console.log("[Auth] State changed. User:", user ? user.email : "none");
     if (!userEmailSpan) {
-        document.addEventListener('DOMContentLoaded', () => { // Fallback if DOMContentLoaded hasn't fired yet
+        document.addEventListener('DOMContentLoaded', () => {
             const emailSpan = document.getElementById("userEmail");
             if (emailSpan) updateAuthStateUI(user, emailSpan);
         });
@@ -274,11 +279,9 @@ async function checkAndShowGreaseMonkeyBanner() {
         try {
             const vehicles = await getSavedVehiclesFromFirestore();
             if (vehicles && vehicles.length > 0) {
-                // User is logged in and has saved a vehicle
                 greaseMonkeyBanner.style.display = 'block';
                 console.log("[GreaseMonkeyAI] Banner shown.");
             } else {
-                // User is logged in but has no saved vehicles
                 greaseMonkeyBanner.style.display = 'none';
                 console.log("[GreaseMonkeyAI] Banner hidden (no vehicles saved).");
             }
@@ -287,7 +290,6 @@ async function checkAndShowGreaseMonkeyBanner() {
             greaseMonkeyBanner.style.display = 'none';
         }
     } else {
-        // User is not logged in
         greaseMonkeyBanner.style.display = 'none';
         console.log("[GreaseMonkeyAI] Banner hidden (user not logged in).");
     }
@@ -298,17 +300,16 @@ function updateAuthStateUI(user, emailSpanElement) {
         emailSpanElement.textContent = `Logged in as: ${user.email}`;
 
         // Load data for all relevant sections when user logs in
-        renderSavedVehicles(); // My Garage vehicles
-        loadWishlist();       // My Wishlist items
-        loadProfile();        // My Profile details and vehicles
+        renderSavedVehicles();
+        loadWishlist();
+        loadProfile();
 
         // If currently on auth page, redirect to home
         if (document.querySelector('.page.active')?.id === 'auth') {
             showPage('home');
         }
-        clearAuthFields(); // Clear fields after successful login/registration
+        clearAuthFields();
 
-        // --- NEW: Create initial user document in 'users' collection if it doesn't exist ---
         const userProfileDocRef = doc(db, FIRESTORE_USERS_COLLECTION, user.uid);
         getDoc(userProfileDocRef).then((docSnap) => {
             if (!docSnap.exists()) {
@@ -333,14 +334,13 @@ function updateAuthStateUI(user, emailSpanElement) {
             showNotification("Error accessing user profile data.", "error");
         });
 
-        // --- NEW: Create initial user garage/wishlist document in 'garages' collection if it doesn't exist ---
         const userGarageDocRef = doc(db, FIRESTORE_GARAGES_COLLECTION, user.uid);
         getDoc(userGarageDocRef).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.log("[Firestore] Creating new user garage document in 'garages' collection for:", user.uid);
                 setDoc(userGarageDocRef, {
-                    [FIRESTORE_VEHICLES_FIELD]: [], // Initialize vehicles array
-                    [FIRESTORE_WISHLIST_FIELD]: [], // Initialize wishlist array
+                    [FIRESTORE_VEHICLES_FIELD]: [],
+                    [FIRESTORE_WISHLIST_FIELD]: [],
                     createdAt: serverTimestamp()
                 }).then(() => {
                     console.log("[Firestore] User garage document created successfully in 'garages' collection.");
@@ -358,24 +358,20 @@ function updateAuthStateUI(user, emailSpanElement) {
 
     } else {
         emailSpanElement.textContent = "";
-        // If logged out from a user-specific page, redirect to auth page
         if (document.querySelector(".page.active")?.id === "garage" ||
             document.querySelector(".page.active")?.id === "wishlist" ||
             document.querySelector(".page.active")?.id === "profile") {
             showPage("auth");
         }
-        clearAuthFields(); // Clear fields upon logout
-        // Clear data displayed on user-specific sections upon logout
-        renderSavedVehicles(); // Clears vehicles in Garage
-        loadWishlist();       // Clears wishlist
-        loadProfile();        // Clears profile fields
+        clearAuthFields();
+        renderSavedVehicles();
+        loadWishlist();
+        loadProfile();
         showNotification("Logged out.", 'info', 2000);
-        // NEW: Hide the banner on logout
         if (greaseMonkeyBanner) {
             greaseMonkeyBanner.style.display = 'none';
         }
     }
-    // NEW: Check and show banner after every auth state change
     checkAndShowGreaseMonkeyBanner();
 }
 
@@ -388,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
     hamburgerMenu = document.getElementById('hamburgerMenu');
     userEmailSpan = document.getElementById('userEmail');
     notificationContainer = document.getElementById('notificationContainer');
-    // NEW: Assign the Grease Monkey Banner element
     greaseMonkeyBanner = document.getElementById('greaseMonkeyBanner');
 
     // Assign Auth Form Elements
@@ -414,20 +409,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign Garage Form Elements
     garageForm = document.getElementById('garageForm');
-    // REMOVED: makeInput; modelInput; yearInput; (these are now select elements)
     savedVehiclesContainer = document.getElementById('savedVehicles');
     noVehiclesMessage = document.getElementById('noVehiclesMessage');
-
-    // NEW: Assign the new select elements
     makeSelect = document.getElementById('makeSelect');
     modelSelect = document.getElementById('modelSelect');
     yearSelect = document.getElementById('yearSelect');
-
-    // NEW: Elements for adding by Tag Number (VIN)
     vinInput = document.getElementById('vinInput');
     addVinButton = document.getElementById('addVinButton');
-    vinLookupMessage = document.getElementById('vinLookupMessage'); // A span or div to show lookup status
-
+    vinLookupMessage = document.getElementById('vinLookupMessage');
 
     // Assign Wishlist Elements
     featuredProductsGrid = document.getElementById('featuredProductsGrid');
@@ -449,11 +438,9 @@ document.addEventListener('DOMContentLoaded', () => {
     zipInput = document.getElementById('zipInput');
     countryInput = document.getElementById('countryInput');
     saveProfileBtn = document.getElementById('saveProfileBtn');
-
     preferencesForm = document.getElementById('preferencesForm');
     newsletterCheckbox = document.getElementById('newsletterCheckbox');
     savePreferencesBtn = document.getElementById('savePreferencesBtn');
-
     orderHistoryList = document.getElementById('orderHistoryList');
     profileSavedVehiclesList = document.getElementById('profileSavedVehiclesList');
     noProfileVehiclesMessage = document.getElementById('noProfileVehiclesMessage');
@@ -462,15 +449,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Assign Contact Form Elements
     contactForm = document.getElementById('contactForm');
 
-    // --- Attach Event Listeners (only if elements exist) ---
+    // NEW: Assign AI Assistant Elements
+    aiAssistantForm = document.getElementById('aiAssistantForm');
+    aiVehicleInfo = document.getElementById('aiVehicleInfo');
+    problemInput = document.getElementById('problemInput');
+    aiSubmitBtn = document.getElementById('aiSubmitBtn');
+    aiResponseContainer = document.getElementById('aiResponseContainer');
+    aiResponseContent = document.getElementById('aiResponseContent');
+    aiPartsLinks = document.getElementById('aiPartsLinks');
 
+    // --- Attach Event Listeners (only if elements exist) ---
     // Hamburger Menu Logic
     if (hamburgerMenu && navLinks) {
         hamburgerMenu.addEventListener('click', (event) => {
             event.stopPropagation();
             navLinks.classList.toggle('active');
             hamburgerMenu.classList.toggle('open');
-            // NEW: Update aria-expanded when opening/closing
             const isExpanded = hamburgerMenu.getAttribute('aria-expanded') === 'true';
             hamburgerMenu.setAttribute('aria-expanded', !isExpanded);
         });
@@ -479,7 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (navLinks.classList.contains('active')) {
                     navLinks.classList.remove('active');
                     hamburgerMenu.classList.remove('open');
-                    // NEW: Update aria-expanded when closing the menu by clicking a link
                     hamburgerMenu.setAttribute('aria-expanded', 'false');
                 }
             });
@@ -488,7 +481,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!navLinks.contains(event.target) && !hamburgerMenu.contains(event.target) && navLinks.classList.contains('active')) {
                 navLinks.classList.remove('active');
                 hamburgerMenu.classList.remove('open');
-                // NEW: Update aria-expanded when clicking outside the menu
                 hamburgerMenu.setAttribute('aria-expanded', 'false');
             }
         });
@@ -516,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await signInWithEmailAndPassword(auth, loginEmailInput.value, loginPassInput.value);
                 showNotification("Login successful!", "success");
-                clearAuthFields(); // Clear fields on successful login
+                clearAuthFields();
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
                 if (err.code === 'auth/invalid-email') {
@@ -557,7 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!regPassInput.value) { displayFormError('regPassError', 'Password is required.'); isValid = false; }
             if (regPassInput.value.length < 6) { displayFormError('regPassError', 'Password must be at least 6 characters long.'); isValid = false; }
 
-
             if (!isValid) {
                 showNotification('Please fill in all required fields.', 'error');
                 setButtonLoading(submitBtn, false);
@@ -569,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await createUserWithEmailAndPassword(auth, regEmailInput.value, regPassInput.value);
                 showNotification("Registered successfully!", "success");
-                clearAuthFields(); // Clear fields on successful registration
+                clearAuthFields();
             } catch (err) {
                 let errorMessage = "An unknown error occurred.";
                 if (err.code === 'auth/invalid-email') {
@@ -590,7 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Password Strength Indicator (for Registration Form)
         if (regPassInput && passwordStrengthIndicator) {
             regPassInput.addEventListener('input', () => {
                 const password = regPassInput.value;
@@ -611,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await signInWithPopup(auth, provider);
                 showNotification("Google login successful!", "success");
-                clearAuthFields(); // Clear fields on successful Google login
+                clearAuthFields();
             } catch (err) {
                 if (err.code === 'auth/popup-closed-by-user') {
                     showNotification("Google login cancelled.", "info");
@@ -635,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await signOut(auth);
                 showNotification("Logged out successfully!", "info");
-                clearAuthFields(); // Clear fields on logout (though auth state change will also trigger this)
+                clearAuthFields();
             } catch (err) {
                 showNotification("Logout error: " + err.message, "error", 5000);
             } finally {
@@ -689,9 +679,8 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleLoginPassBtn.addEventListener('click', () => {
             const type = loginPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
             loginPassInput.setAttribute('type', type);
-            // NEW: Update aria-label and aria-pressed
             toggleLoginPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
-            toggleLoginPassBtn.setAttribute('aria-pressed', type !== 'password'); // True if text, false if password
+            toggleLoginPassBtn.setAttribute('aria-pressed', type !== 'password');
             toggleLoginPassBtn.textContent = type === 'password' ? '👁️' : '🙈';
         });
     } else { console.warn("[DOM] Login password toggle not found."); }
@@ -700,16 +689,14 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleRegPassBtn.addEventListener('click', () => {
             const type = regPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
             regPassInput.setAttribute('type', type);
-            // NEW: Update aria-label and aria-pressed
             toggleRegPassBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
-            toggleRegPassBtn.setAttribute('aria-pressed', type !== 'password'); // True if text, false if password
+            toggleRegPassBtn.setAttribute('aria-pressed', type !== 'password');
             toggleRegPassBtn.textContent = type === 'password' ? '👁️' : '🙈';
         });
     } else { console.warn("[DOM] Register password toggle not found."); }
 
 
     // --- My Garage Section (Firebase) ---
-    // NEW: Update garageForm event listener to use select elements and new validation
     if (garageForm && makeSelect && modelSelect && yearSelect && savedVehiclesContainer && noVehiclesMessage) {
         garageForm.addEventListener('submit', async (e) => {
             console.log("[Garage] Form submitted.");
@@ -726,16 +713,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // NEW: Get values from select dropdowns
             const make = makeSelect.value;
             const model = modelSelect.value;
-            const year = parseInt(yearSelect.value); // Ensure year is parsed as int
+            const year = parseInt(yearSelect.value);
 
             let isValid = true;
-            // NEW: Updated validation for dropdowns
             if (!make) { displayFormError('makeError', 'Please select a Make.'); isValid = false; }
             if (!model) { displayFormError('modelError', 'Please select a Model.'); isValid = false; }
-            if (isNaN(year) || !year) { displayFormError('yearError', 'Please select a Year.'); isValid = false; } // Simplified year check
+            if (isNaN(year) || !year) { displayFormError('yearError', 'Please select a Year.'); isValid = false; }
 
             if (!isValid) {
                 console.log("[Garage] Validation failed.");
@@ -747,7 +732,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("[Garage] Validation passed, proceeding with save logic.");
 
             try {
-                // Get reference to the user's garage document
                 const userGarageDocRef = getUserGarageDocRefForArrays();
                 if (!userGarageDocRef) {
                     showNotification("Error: Could not access user's garage document.", "error");
@@ -755,10 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const newVehicle = { make, model, year, createdAt: Date.now() }; // Use Date.now() for unique timestamp
+                const newVehicle = { make, model, year, createdAt: Date.now() };
                 console.log("[Garage] Attempting to save new vehicle:", newVehicle);
 
-                // --- NEW ROBUSTNESS: Check if garage document exists before trying to update ---
                 const userGarageDocSnap = await getDoc(userGarageDocRef);
                 let vehicles = [];
 
@@ -767,8 +750,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("[Garage] Existing garage document found.");
                 } else {
                     console.log("[Garage] No existing garage document found. Creating a new one.");
-                    // The updateAuthStateUI should create it, but this acts as a fallback for the first add
-                    // or if navigation was too fast.
                 }
 
                 if (vehicles.length >= MAX_VEHICLES) {
@@ -778,31 +759,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Prevent adding duplicate vehicles (based on make, model, year, and createdAt if possible)
                 const isDuplicate = vehicles.some(v => v.make === newVehicle.make && v.model === newVehicle.model && v.year === newVehicle.year);
                 if (isDuplicate) {
                     showNotification(`Vehicle "${year} ${make} ${model}" is already in your garage.`, "info");
                     setButtonLoading(submitBtn, false);
-                    // garageForm.reset(); // Don't reset if it's a duplicate, let user see existing selections
                     return;
                 }
 
-                // If the document didn't exist, create it with the first vehicle and an empty wishlist array
                 if (!userGarageDocSnap.exists()) {
                     await setDoc(userGarageDocRef, {
                         [FIRESTORE_VEHICLES_FIELD]: [newVehicle],
-                        [FIRESTORE_WISHLIST_FIELD]: [], // Initialize wishlist field as empty array
-                        createdAt: serverTimestamp() // Add document creation timestamp
+                        [FIRESTORE_WISHLIST_FIELD]: [],
+                        createdAt: serverTimestamp()
                     });
                 } else {
-                    // If the document already existed, just update the vehicles array
                     await updateDoc(userGarageDocRef, {
                         [FIRESTORE_VEHICLES_FIELD]: arrayUnion(newVehicle)
                     });
                 }
 
                 showNotification(`Vehicle "${year} ${make} ${model}" saved to your garage!`, "success");
-                // NEW: Reset dropdowns and re-enable appropriate states
                 makeSelect.value = '';
                 modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
                 modelSelect.disabled = true;
@@ -824,7 +800,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // NEW: Event Listeners for the new dropdowns
         makeSelect.addEventListener('change', () => {
             const selectedMake = makeSelect.value;
             fetchModelsByMake(selectedMake);
@@ -846,16 +821,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addVinButton && vinInput) {
         addVinButton.addEventListener('click', async () => {
             console.log("[Garage] Add by VIN button clicked.");
-            const vin = vinInput.value.trim().toUpperCase(); // Convert to uppercase for VIN consistency
-            clearFormErrors('vinInputError'); // Clear VIN-specific error
-            if (vinLookupMessage) vinLookupMessage.textContent = ''; // Clear previous VIN message
+            const vin = vinInput.value.trim().toUpperCase();
+            clearFormErrors('vinInputError');
+            if (vinLookupMessage) vinLookupMessage.textContent = '';
 
             if (!vin) {
                 showNotification("Please enter a VIN to look up vehicle details.", "error");
                 displayFormError('vinInputError', 'VIN is required.');
                 return;
             }
-            // Basic VIN length and character validation (VINs exclude I, O, Q)
             const vinPattern = /^[A-HJ-NPR-Z0-9]{17}$/;
             if (vin.length !== 17 || !vinPattern.test(vin)) {
                 showNotification("Please enter a valid 17-character VIN.", "error");
@@ -871,22 +845,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (vehicleDetails) {
                     showNotification(`Vehicle details found: ${vehicleDetails.year} ${vehicleDetails.make} ${vehicleDetails.model}`, 'success', 5000);
                     if (vinLookupMessage) vinLookupMessage.textContent = `Found: ${vehicleDetails.year} ${vehicleDetails.make} ${vehicleDetails.model}`;
-
-                    // Automatically populate the dropdowns with found details
                     if (makeSelect) makeSelect.value = vehicleDetails.make;
-                    // For model and year, we need to ensure the dropdowns are populated with options first
                     if (modelSelect) {
-                            // Await fetching models for the make before setting the value
-                            await fetchModelsByMake(vehicleDetails.make);
-                            modelSelect.value = vehicleDetails.model;
+                        await fetchModelsByMake(vehicleDetails.make);
+                        modelSelect.value = vehicleDetails.model;
                     }
                     if (yearSelect) {
-                        populateYears(); // Ensure years are populated
-                        yearSelect.value = vehicleDetails.Year; // Note: VIN API gives 'Year', not 'year'
+                        populateYears();
+                        yearSelect.value = vehicleDetails.year;
                     }
-
-                    vinInput.value = ''; // Clear VIN input after successful lookup
-
+                    vinInput.value = '';
                 } else {
                     showNotification("Could not find details for that VIN. Please check the number or try manual entry.", "error", 7000);
                     if (vinLookupMessage) vinLookupMessage.textContent = 'No details found.';
@@ -992,7 +960,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     setButtonLoading(submitBtn, false);
                     return;
                 }
-                // setDoc with merge:true will create the document if it doesn't exist
                 await setDoc(userProfileDocRef, {
                     firstName: firstName,
                     lastName: lastName,
@@ -1041,7 +1008,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     setButtonLoading(submitBtn, false);
                     return;
                 }
-                // setDoc with merge:true will create the document if it doesn't exist
                 await setDoc(userProfileDocRef, {
                     newsletterSubscription: isSubscribed,
                     lastUpdated: serverTimestamp()
@@ -1101,44 +1067,27 @@ document.addEventListener('DOMContentLoaded', () => {
             setButtonLoading(deleteAccountBtn, true);
 
             try {
-                // 1. Re-authenticate the user (Firebase security requirement)
                 const credential = EmailAuthProvider.credential(user.email, password);
                 await reauthenticateWithCredential(user, credential);
                 console.log("[Profile] Re-authentication successful. Proceeding with deletion...");
                 showNotification("Re-authentication successful. Deleting account...", "info");
 
-                // 2. Delete user's Firestore data (VERY IMPORTANT!)
-                // Delete the main user profile document from 'users' collection
                 const userProfileDocRef = getUserProfileDocRef();
                 if (userProfileDocRef) {
                     await deleteDoc(userProfileDocRef);
                     console.log("[Profile] User profile document deleted from 'users' collection.");
                 }
 
-                // Delete the user's garage document from 'garages' collection (which contains vehicles and wishlist arrays)
                 const userGarageDocRef = getUserGarageDocRefForArrays();
                 if (userGarageDocRef) {
                     await deleteDoc(userGarageDocRef);
                     console.log("[Profile] User garage/wishlist document deleted from 'garages' collection.");
                 }
 
-
-                // NOTE: If orders or other data are stored in separate top-level collections
-                // but linked by userId, you would need to query those collections and delete them here.
-                // Example:
-                // const ordersCollectionRef = collection(db, 'orders');
-                // const ordersQuery = query(ordersCollectionRef, where('userId', '==', user.uid));
-                // const orderDocs = await getDocs(ordersQuery);
-                // const deleteOrderPromises = orderDocs.docs.map(d => deleteDoc(d.ref));
-                // await Promise.all(deleteOrderPromises);
-
-
-                // 3. Delete Firebase Authentication account
                 await deleteUser(user);
                 console.log("[Profile] Firebase Auth user account deleted.");
 
                 showNotification("Your account and all associated data have been permanently deleted.", "success", 7000);
-                // Auth state listener will handle UI redirect to home/auth
             } catch (error) {
                 console.error("[Profile ERROR] Error deleting account:", error);
                 if (error.code === 'auth/requires-recent-login') {
@@ -1221,12 +1170,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial page load
-    showPage('home'); // This will trigger fetchMakes for the garage page implicitly
+    showPage('home');
 });
 
 // --- Helper Functions (defined outside DOMContentLoaded so they are globally accessible) ---
 
-// Get the DocumentReference for the current user's profile in the 'users' collection
 function getUserProfileDocRef() {
     if (!auth.currentUser) {
         console.warn("[Helper] getUserProfileDocRef: No current user logged in.");
@@ -1235,8 +1183,6 @@ function getUserProfileDocRef() {
     return doc(db, FIRESTORE_USERS_COLLECTION, auth.currentUser.uid);
 }
 
-// Get the DocumentReference for the user's garage/wishlist data in the 'garages' collection
-// This is for the structure where vehicles/wishlist are arrays directly in this document
 function getUserGarageDocRefForArrays() {
     if (!auth.currentUser) {
         console.warn("[Helper] getUserGarageDocRefForArrays: No current user logged in.");
@@ -1246,7 +1192,6 @@ function getUserGarageDocRefForArrays() {
 }
 
 
-// Fetches vehicles from the user's dedicated 'garages' document (as an array field)
 async function getSavedVehiclesFromFirestore() {
     const userGarageDocRef = getUserGarageDocRefForArrays();
     if (!userGarageDocRef) {
@@ -1267,7 +1212,6 @@ async function getSavedVehiclesFromFirestore() {
     }
 }
 
-// Renders saved vehicles in the My Garage page
 async function renderSavedVehicles() {
     const savedVehiclesContainer = document.getElementById('savedVehicles');
     const noVehiclesMessage = document.getElementById('noVehiclesMessage');
@@ -1277,7 +1221,7 @@ async function renderSavedVehicles() {
         return;
     }
 
-    savedVehiclesContainer.innerHTML = ''; // Clear previous content
+    savedVehiclesContainer.innerHTML = '';
     noVehiclesMessage.textContent = 'Loading your vehicles...';
     noVehiclesMessage.style.display = 'block';
     savedVehiclesContainer.appendChild(noVehiclesMessage);
@@ -1290,14 +1234,14 @@ async function renderSavedVehicles() {
 
     try {
         const vehicles = await getSavedVehiclesFromFirestore();
-        savedVehiclesContainer.innerHTML = ''; // Clear loading message now that data is fetched
+        savedVehiclesContainer.innerHTML = '';
 
         if (vehicles.length === 0) {
             noVehiclesMessage.textContent = 'No vehicles saved yet. Add one above!';
             noVehiclesMessage.style.display = 'block';
             savedVehiclesContainer.appendChild(noVehiclesMessage);
         } else {
-            noVehiclesMessage.style.display = 'none'; // Hide the message if vehicles exist
+            noVehiclesMessage.style.display = 'none';
             vehicles.forEach((vehicle, index) => {
                 const vehicleCard = document.createElement('div');
                 vehicleCard.className = 'vehicle-card';
@@ -1320,14 +1264,13 @@ async function renderSavedVehicles() {
                 savedVehiclesContainer.appendChild(vehicleCard);
             });
 
-            // Attach listeners after all cards are added
             document.querySelectorAll('#savedVehicles .delete-vehicle-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
                     const vehicleToDelete = {
                         make: e.target.dataset.make,
                         model: e.target.dataset.model,
                         year: parseInt(e.target.dataset.year),
-                        createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt // Crucial for arrayRemove to match exactly
+                        createdAt: vehicles[parseInt(e.target.dataset.vehicleIndex)].createdAt
                     };
                     await deleteVehicleFromArray(vehicleToDelete, e.target);
                 });
@@ -1340,11 +1283,9 @@ async function renderSavedVehicles() {
         savedVehiclesContainer.appendChild(noVehiclesMessage);
         showNotification("Error loading saved vehicles: " + error.message, "error", 5000);
     }
-    // NEW: Check and show banner after rendering vehicles
     checkAndShowGreaseMonkeyBanner();
 }
 
-// Deletes a vehicle from the array field within the garage document
 async function deleteVehicleFromArray(vehicleToDelete, button) {
     const userGarageDocRef = getUserGarageDocRefForArrays();
     if (!userGarageDocRef) {
@@ -1359,748 +1300,16 @@ async function deleteVehicleFromArray(vehicleToDelete, button) {
             [FIRESTORE_VEHICLES_FIELD]: arrayRemove(vehicleToDelete)
         });
         showNotification(`Vehicle "${vehicleToDelete.year} ${vehicleToDelete.make} ${vehicleToDelete.model}" deleted.`, 'info');
-        setTimeout(async () => { // Small delay for Firestore sync
-            await renderSavedVehicles();
-            await loadVehicleForProducts();
-            await loadProfileVehicles(auth.currentUser.uid);
-             // NEW: Check banner state after deleting a vehicle
-            checkAndShowGreaseMonkeyBanner();
-        }, 500);
-    } catch (error) {
-        console.error("[Garage ERROR] Error deleting vehicle from array:", error);
-        showNotification("Error deleting vehicle: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-
-// --- NEW SECTION: Vehicle API Integration (NHTSA API) ---
-
-const NHTSA_API_BASE_URL = 'https://vpic.nhtsa.dot.gov/api/vehicles';
-
-/**
- * Fetches vehicle makes from the NHTSA API, filters them by a predefined whitelist,
- * and populates the makeSelect dropdown.
- */
-async function fetchMakes() {
-    if (!makeSelect) {
-        console.warn("[API] Make select element not found.");
-        return;
-    }
-    makeSelect.innerHTML = '<option value="">-- Loading Makes... --</option>';
-    makeSelect.disabled = true; // Disable while loading
-
-    try {
-        const response = await fetch(`${NHTSA_API_BASE_URL}/GetAllMakes?format=json`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        const makes = data.Results; // Array of { Make_ID, Make_Name }
-
-        // Filter the fetched makes using the VALID_MAKES_WHITELIST
-        const filteredMakes = makes.filter(make =>
-            VALID_MAKES_WHITELIST.some(allowedMake =>
-                make.Make_Name.toLowerCase() === allowedMake.toLowerCase()
-            )
-        );
-
-        // Clear existing options
-        makeSelect.innerHTML = '<option value="">-- Select Make --</option>';
-        if (filteredMakes.length > 0) {
-            // Sort the filtered makes alphabetically by name
-            filteredMakes.sort((a, b) => a.Make_Name.localeCompare(b.Make_Name));
-            filteredMakes.forEach(make => {
-                const option = document.createElement('option');
-                option.value = make.Make_Name;
-                option.textContent = make.Make_Name;
-                makeSelect.appendChild(option);
-            });
-            makeSelect.disabled = false; // Enable make selection
-        } else {
-            showNotification('No matching makes found based on your filter list.', 'info');
-            makeSelect.innerHTML = '<option value="">-- No Makes Found --</option>';
-            makeSelect.disabled = true;
-        }
-
-    } catch (error) {
-        console.error('Error fetching and filtering makes:', error);
-        showNotification('Failed to load vehicle makes. Please try again later.', 'error');
-        makeSelect.innerHTML = '<option value="">-- Error Loading Makes --</option>';
-        makeSelect.disabled = true; // Keep disabled on error
-    }
-}
-
-/**
- * Fetches models for a given make from the NHTSA API and populates the modelSelect dropdown.
- * @param {string} makeName - The name of the selected vehicle make.
- */
-async function fetchModelsByMake(makeName) {
-    if (!modelSelect || !yearSelect) {
-        console.warn("[API] Model or Year select elements not found.");
-        return;
-    }
-    modelSelect.innerHTML = '<option value="">-- Loading Models... --</option>';
-    modelSelect.disabled = true;
-    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-    yearSelect.disabled = true;
-
-    if (!makeName) { // If no make is selected, reset models and years
-        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
-        modelSelect.disabled = true;
-        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-        yearSelect.disabled = true;
-        return;
-    }
-
-    try {
-        // Encode makeName for URL
-        const encodedMakeName = encodeURIComponent(makeName);
-        const response = await fetch(`${NHTSA_API_BASE_URL}/GetModelsForMake/${encodedMakeName}?format=json`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        const models = data.Results; // Array of { Model_ID, Model_Name }
-
-        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
-        if (models && models.length > 0) {
-            models.sort((a, b) => a.Model_Name.localeCompare(b.Model_Name)); // Sort alphabetically
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.Model_Name;
-                option.textContent = model.Model_Name;
-                modelSelect.appendChild(option);
-            });
-            modelSelect.disabled = false; // Enable model selection
-        } else {
-            showNotification(`No models found for ${makeName}.`, 'info');
-            modelSelect.innerHTML = '<option value="">-- No Models Found --</option>';
-            modelSelect.disabled = true;
-        }
-        yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-        yearSelect.disabled = true; // Disable year until model is chosen
-    } catch (error) {
-        console.error('Error fetching models:', error);
-        showNotification(`Failed to load models for ${makeName}. Please try again.`, 'error');
-        modelSelect.innerHTML = '<option value="">-- Error Loading Models --</option>';
-        modelSelect.disabled = true;
-        yearSelect.disabled = true;
-    }
-}
-
-/**
- * Populates the yearSelect dropdown with a reasonable range of years.
- * NHTSA API doesn't provide years directly for make/model, so we generate a range.
- */
-function populateYears() {
-    if (!yearSelect) {
-        console.warn("[API] Year select element not found.");
-        return;
-    }
-    yearSelect.innerHTML = '<option value="">-- Select Year --</option>';
-    const currentYear = new Date().getFullYear();
-    // Go back 30 years and up to next year for new models
-    for (let year = currentYear + 1; year >= currentYear - 30; year--) {
-        const option = document.createElement('option');
-        option.value = year;
-        option.textContent = year;
-        yearSelect.appendChild(option);
-    }
-    yearSelect.disabled = false; // Enable year selection
-}
-
-/**
- * Fetches vehicle details from the NHTSA API using a VIN.
- * @param {string} vin - The Vehicle Identification Number (must be 17 characters).
- * @returns {object|null} An object with make, model, year, or null if not found/error.
- */
-async function fetchVehicleDetailsByVin(vin) {
-    // NHTSA VIN Decoding endpoint
-    const url = `${NHTSA_API_BASE_URL}/DecodeVin/${encodeURIComponent(vin)}?format=json`;
-    console.log(`[API] Fetching VIN details for: ${vin}`);
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-
-        // Check for specific error codes or if Results is not populated correctly
-        if (data.Errors && data.Errors.length > 0) {
-            console.error("[API] NHTSA VIN Decode API returned errors:", data.Errors.map(e => e.Message).join(", "));
-            // Look for a specific error indicating invalid VIN or no data
-            if (data.Errors.some(e => e.Message.includes("Invalid VIN") || e.Message.includes("Not Found"))) {
-                 return null; // Treat as not found for a clean user message
-            }
-            throw new Error(data.Errors.map(e => e.Message).join(", ")); // Re-throw generic errors
-        }
-
-        if (data.Results && data.Results.length > 0) {
-            const results = data.Results;
-            const makeEntry = results.find(item => item.Variable === "Make");
-            const modelEntry = results.find(item => item.Variable === "Model");
-            const modelYearEntry = results.find(item => item.Variable === "Model Year");
-
-            const make = makeEntry ? makeEntry.Value : null;
-            const model = modelEntry ? modelEntry.Value : null;
-            const year = modelYearEntry ? parseInt(modelYearEntry.Value) : null;
-
-            if (make && model && year) {
-                console.log(`[API] VIN lookup successful: ${year} ${make} ${model}`);
-                return { make, model, year };
-            } else {
-                console.warn("[API] Partial VIN details found or missing key info:", { make, model, year, results });
-                // If essential details (make, model, year) are missing, consider it not found
-                return null;
-            }
-        } else {
-            console.warn("[API] No results found for VIN:", vin);
-            return null;
-        }
-    } catch (error) {
-        console.error(`[API ERROR] Error decoding VIN ${vin}:`, error);
-        throw error; // Re-throw to be caught by the calling event listener
-    }
-}
-
-// --- END NEW SECTION: Vehicle API Integration ---
-
-
-// Loads vehicle data for the Products page's search and filtering options
-async function loadVehicleForProducts() {
-    const productContentDiv = document.getElementById('productContent');
-    if (!productContentDiv) {
-        console.warn("[DOM] Product content div not found for loadVehicleForProducts.");
-        return;
-    }
-
-    productContentDiv.innerHTML = '<p class="no-items-message">Loading vehicle search options...</p>';
-
-
-    if (!auth.currentUser) {
-        productContentDiv.innerHTML = `
-            <div class="no-vehicle-message">
-                <h3>Please Log In or Save Your Vehicle</h3>
-                <p>To get personalized part searches, please <a href="#" onclick="showPage('auth')">log in</a> or go to <a href="#" onclick="showPage('garage')">My Garage</a> to save your vehicle details.</p>
-            </div>
-        `;
-        selectedVehicleForSearch = null;
-        return;
-    }
-
-    try {
-        const vehicles = await getSavedVehiclesFromFirestore();
-
-        if (vehicles.length > 0) {
-            // Select the first vehicle by default if none is selected or if selected vehicle was removed
-            if (!selectedVehicleForSearch || !vehicles.some(v =>
-                v.make === selectedVehicleForSearch.make &&
-                v.model === selectedVehicleForSearch.model &&
-                v.year === selectedVehicleForSearch.year)
-            ) {
-                selectedVehicleForSearch = vehicles[0];
-            }
-
-            let vehicleOptionsHtml = vehicles.map((v, index) => `
-                <option value="${index}" ${
-                    (selectedVehicleForSearch && vehicles.indexOf(selectedVehicleForSearch) === index)
-                    ? 'selected' : ''
-                }>
-                    ${v.year} ${v.make} ${v.model}
-                </option>
-            `).join('');
-
-            let htmlContent = `
-                <div class="select-vehicle-container">
-                    <label for="vehicleSelect">Select Your Vehicle:</label>
-                    <select id="vehicleSelect">
-                        ${vehicleOptionsHtml}
-                    </select>
-                </div>
-
-                <h3 style="text-align: center; margin-top: 2rem;">Parts for Your <span id="currentSearchVehicle">${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}</span></h3>
-
-                <div class="general-search-section">
-                    <label for="generalProductSearch" class="sr-only">Search Parts by Keyword</label>
-                    <input type="text" id="generalProductSearch" placeholder="Search for any part (e.g., 'alternator')" />
-                    <button id="generalSearchButton">Search</button>
-                </div>
-
-                <p style="text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;">Or click a category below to search Amazon directly for your vehicle:</p>
-                <div class="category-buttons">
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Brake Pads')">Brake Pads</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Oil Filter')">Oil Filter</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Air Filter')">Air Filter</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Spark Plugs')">Spark Plugs</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Suspension Kit')">Suspension Kit</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Headlights')">Headlights</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Tail Lights')">Tail Lights</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Windshield Wipers')">Wiper Blades</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Radiator')">Radiator</button>
-                    <button onclick="window.searchAmazonSpecific('${selectedVehicleForSearch.year}', '${selectedVehicleForSearch.make}', '${selectedVehicleForSearch.model}', 'Battery')">Battery</button>
-                    </div>
-            `;
-            productContentDiv.innerHTML = htmlContent;
-
-            const vehicleSelect = document.getElementById('vehicleSelect');
-            const currentSearchVehicleSpan = document.getElementById('currentSearchVehicle');
-
-            if (vehicleSelect) {
-                vehicleSelect.addEventListener('change', (event) => {
-                    const selectedIndex = parseInt(event.target.value);
-                    selectedVehicleForSearch = vehicles[selectedIndex];
-                    if (currentSearchVehicleSpan) {
-                         currentSearchVehicleSpan.textContent = `${selectedVehicleForSearch.year} ${selectedVehicleForSearch.make} ${selectedVehicleForSearch.model}`;
-                    }
-                });
-            }
-
-            const generalSearchInput = document.getElementById('generalProductSearch');
-            const generalSearchButton = document.getElementById('generalSearchButton');
-
-            if (generalSearchInput && generalSearchButton) {
-                generalSearchInput.addEventListener('keypress', (event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        window.searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
-                    }
-                });
-
-                generalSearchButton.addEventListener('click', () => {
-                    window.searchAmazonGeneral(selectedVehicleForSearch.year, selectedVehicleForSearch.make, selectedVehicleForSearch.model);
-                });
-            }
-
-
-        } else {
-            productContentDiv.innerHTML = `
-                <div class="no-vehicle-message">
-                    <h3>No Vehicle Saved</h3>
-                    <p>You haven't saved a vehicle yet. Please go to <a href="#" onclick="showPage('garage')">My Garage</a> to add your vehicle details to get personalized part suggestions.</p>
-                </div>
-            `;
-             showNotification("No vehicle saved. Please add one in My Garage!", "info", 5000);
-        }
-    } catch (err) {
-        console.error("[Product ERROR] Error loading vehicle for products page:", err);
-        productContentDiv.innerHTML = `
-            <div class="no-vehicle-message">
-                <h3>Error Loading Vehicle</h3>
-                <p>There was an error loading your vehicle data. Please try again or <a href="#" onclick="showPage('auth')">log in</a>.</p>
-            </div>
-        `;
-        showNotification("Error loading vehicle data for products: " + err.message, "error", 5000);
-    }
-}
-
-// --- NEW: Globally accessible search functions ---
-window.searchAmazonSpecific = function(year, make, model, partType) {
-    const query = `${partType} ${year} ${make} ${model}`;
-    const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
-    window.open(url, "_blank");
-}
-
-window.searchAmazonGeneral = function(year, make, model) {
-    const searchInput = document.getElementById('generalProductSearch');
-    let query = searchInput.value.trim();
-
-    if (query) {
-        query = `${query} ${year} ${make} ${model}`;
-        const url = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${amazonTag}`;
-        window.open(url, "_blank");
-        searchInput.value = '';
-    } else {
-        showNotification("Please enter a search term.", "info");
-    }
-}
-
-// Adds a product to the 'wishlist' array field within the garage document
-async function addToWishlist(product) {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        showNotification("Please log in to add items to your wishlist.", "error");
-        return;
-    }
-
-    try {
-        const userGarageDocSnap = await getDoc(userGarageDocRef);
-        let currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
-
-        // Check if product already exists in wishlist using its 'id' field
-        const exists = currentWishlist.some(item => item.id === product.id);
-
-        if (!exists) {
-            const productWithTimestamp = { ...product, addedAt: Date.now() };
-
-            if (!userGarageDocSnap.exists()) {
-                // If garage document doesn't exist, create it with this first wishlist item
-                await setDoc(userGarageDocRef, {
-                    [FIRESTORE_WISHLIST_FIELD]: [productWithTimestamp],
-                    [FIRESTORE_VEHICLES_FIELD]: [], // Also initialize vehicles field as empty array
-                    createdAt: serverTimestamp() // Add document creation timestamp
-                });
-            } else {
-                // If garage document exists, just update the wishlist array
-                await updateDoc(userGarageDocRef, {
-                    [FIRESTORE_WISHLIST_FIELD]: arrayUnion(productWithTimestamp)
-                });
-            }
-            showNotification(`${product.name} added to wishlist!`, "success");
-            if (document.querySelector('.page.active')?.id === 'wishlist') {
-                loadWishlist();
-            }
-        } else {
-            showNotification(`${product.name} is already in your wishlist.`, "info");
-        }
-    } catch (error) {
-        console.error("[Wishlist ERROR] Error adding to wishlist:", error);
-        showNotification(`Failed to add ${product.name} to wishlist: ${error.message}`, "error");
-    }
-}
-
-// Removes a product from the 'wishlist' array field within the garage document
-async function removeFromWishlist(productId, button) {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        showNotification("Please log in to manage your wishlist.", "error");
-        return;
-    }
-
-    setButtonLoading(button, true);
-
-    try {
-        const userGarageDocSnap = await getDoc(userGarageDocRef);
-        const currentWishlist = userGarageDocSnap.exists() ? userGarageDocSnap.data()[FIRESTORE_WISHLIST_FIELD] || [] : [];
-
-        // Find the exact item to remove from the array by its 'id'
-        const itemToRemove = currentWishlist.find(item => item.id === productId);
-
-        if (itemToRemove) {
-            await updateDoc(userGarageDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: arrayRemove(itemToRemove)
-            });
-            showNotification("Product removed from wishlist.", "info");
-            loadWishlist();
-        } else {
-            showNotification("Product not found in wishlist (already removed?).", "info");
-        }
-    } catch (error) {
-        console.error("[Wishlist ERROR] Error removing from wishlist:", error);
-        showNotification("Failed to remove product from wishlist: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-// Clears all items from the 'wishlist' array field within the garage document
-async function clearWishlist(button) {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        showNotification("Please log in to clear your wishlist.", "error");
-        return;
-    }
-
-    setButtonLoading(button, true);
-
-    try {
-        // We only clear if the document exists. If it doesn't, there's nothing to clear.
-        const userGarageDocSnap = await getDoc(userGarageDocRef);
-        if (userGarageDocSnap.exists()) {
-            await updateDoc(userGarageDocRef, {
-                [FIRESTORE_WISHLIST_FIELD]: []
-            });
-            showNotification("Wishlist cleared!", "info");
-        } else {
-            showNotification("Your wishlist is already empty.", "info");
-        }
-        loadWishlist();
-    } catch (error) {
-        console.error("[Wishlist ERROR] Error clearing wishlist:", error);
-        showNotification("Failed to clear wishlist: " + error.message, "error");
-    } finally {
-        setButtonLoading(button, false);
-    }
-}
-
-// Fetches wishlist items from the user's dedicated 'garages' document (as an array field)
-async function getWishlistFromFirestore() {
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        console.log("[Firestore] getWishlistFromFirestore: Not logged in, returning empty array.");
-        return [];
-    }
-
-    try {
-        const docSnap = await getDoc(userGarageDocRef);
-        if (docSnap.exists()) {
-            return docSnap.data()[FIRESTORE_WISHLIST_FIELD] || [];
-        }
-        return [];
-    } catch (error) {
-        console.error("[Firestore ERROR] Error getting wishlist from Firestore:", error);
-        showNotification("Error loading wishlist.", "error");
-        return [];
-    }
-}
-
-// Loads and displays all user-specific data on the Profile page
-async function loadProfile() {
-    // Basic account info
-    const profileEmailSpan = document.getElementById('profileEmail');
-    const profileDisplayNameSpan = document.getElementById('profileDisplayName');
-
-    // Personal Info inputs
-    const firstNameInput = document.getElementById('firstNameInput');
-    const lastNameInput = document.getElementById('lastNameInput');
-    const phoneInput = document.getElementById('phoneInput');
-    const addressInput = document.getElementById('addressInput');
-    const cityInput = document.getElementById('cityInput');
-    const stateInput = document.getElementById('stateInput');
-    const zipInput = document.getElementById('zipInput');
-    const countryInput = document.getElementById('countryInput');
-
-    // Preferences
-    const newsletterCheckbox = document.getElementById('newsletterCheckbox');
-
-    if (!profileEmailSpan || !profileDisplayNameSpan || !firstNameInput || !lastNameInput ||
-        !phoneInput || !addressInput || !cityInput || !stateInput || !zipInput || !countryInput ||
-        !newsletterCheckbox || !profileSavedVehiclesList || !orderHistoryList) {
-        console.warn("[Profile] Profile page DOM elements not fully loaded or missing. Retrying after DOMContentLoaded if needed.");
-        document.addEventListener('DOMContentLoaded', loadProfile);
-        return;
-    }
-
-    const user = auth.currentUser;
-    if (user) {
-        profileEmailSpan.textContent = user.email;
-        profileDisplayNameSpan.textContent = user.displayName || 'Not set';
-
-        const userProfileDocRef = getUserProfileDocRef();
-
-        try {
-            const docSnap = await getDoc(userProfileDocRef);
-            if (docSnap.exists()) {
-                const userData = docSnap.data();
-                firstNameInput.value = userData.firstName || '';
-                lastNameInput.value = userData.lastName || '';
-                phoneInput.value = userData.phone || '';
-                addressInput.value = userData.address || '';
-                cityInput.value = userData.city || '';
-                stateInput.value = userData.state || '';
-                zipInput.value = userData.zip || '';
-                countryInput.value = userData.country || '';
-
-                newsletterCheckbox.checked = userData.newsletterSubscription || false;
-                console.log("[Profile] Profile data loaded from Firestore.");
-            } else {
-                console.log("[Profile] No custom profile data found for this user. Fields will be empty.");
-                firstNameInput.value = '';
-                lastNameInput.value = '';
-                phoneInput.value = '';
-                addressInput.value = '';
-                cityInput.value = '';
-                stateInput.value = '';
-                zipInput.value = '';
-                countryInput.value = '';
-                newsletterCheckbox.checked = false;
-            }
-
-            await loadProfileVehicles(user.uid);
-            loadOrderHistory(user.uid);
-
-        } catch (error) {
-            console.error("[Profile ERROR] Error loading profile data:", error);
-            showNotification("Error loading profile data. Please try again.", "error");
-        }
-
-    } else {
-        profileEmailSpan.textContent = 'Not logged in';
-        profileDisplayNameSpan.textContent = 'Not set';
-        firstNameInput.value = '';
-        lastNameInput.value = '';
-        phoneInput.value = '';
-        addressInput.value = '';
-        cityInput.value = '';
-        stateInput.value = '';
-        zipInput.value = '';
-        countryInput.value = '';
-        newsletterCheckbox.checked = false;
-
-        if (profileSavedVehiclesList) {
-            profileSavedVehiclesList.innerHTML = '<p id="noProfileVehiclesMessage" class="no-items-message">Please log in to see your saved vehicles.</p>';
-        }
-        if (orderHistoryList) {
-            orderHistoryList.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
-        }
-        showNotification("Please log in to view your profile.", "info");
-    }
-}
-
-// Function to load and display saved vehicles on the Profile page
-async function loadProfileVehicles(userId) {
-    const vehiclesListDiv = document.getElementById('profileSavedVehiclesList');
-    const noVehiclesMessageElement = document.getElementById('noProfileVehiclesMessage');
-
-    if (!vehiclesListDiv || !noVehiclesMessageElement) {
-        console.warn("[DOM] Profile vehicles display elements not found (loadProfileVehicles).");
-        return;
-    }
-
-    vehiclesListDiv.innerHTML = '';
-    noVehiclesMessageElement.textContent = 'Loading your saved vehicles...';
-    noVehiclesMessageElement.style.display = 'block';
-    vehiclesListDiv.appendChild(noVehiclesMessageElement);
-
-    const userGarageDocRef = getUserGarageDocRefForArrays();
-    if (!userGarageDocRef) {
-        noVehiclesMessageElement.textContent = 'Please log in to see your saved vehicles.';
-        return;
-    }
-
-    try {
-        const docSnap = await getDoc(userGarageDocRef);
-        const vehicles = docSnap.exists() ? docSnap.data()[FIRESTORE_VEHICLES_FIELD] || [] : [];
-
-        if (vehicles.length === 0) {
-            noVehiclesMessageElement.textContent = 'No vehicles saved yet. Go to My Garage to add one!';
-            noVehiclesMessageElement.style.display = 'block';
-            vehiclesListDiv.innerHTML = '';
-            vehiclesListDiv.appendChild(noVehiclesMessageElement);
-            return;
-        }
-
-        vehiclesListDiv.innerHTML = '';
-        vehicles.forEach((vehicle, index) => {
-            const vehicleCard = document.createElement('div');
-            vehicleCard.className = 'vehicle-card-profile card';
-            vehicleCard.setAttribute('data-vehicle-index', index);
-            vehicleCard.innerHTML = `
-                <div class="vehicle-info">
-                    <h5>${vehicle.year} ${vehicle.make} ${vehicle.model}</h5>
-                    <p>Make: ${vehicle.make}</p>
-                    <p>Model: ${vehicle.model}</p>
-                    <p>Year: ${vehicle.year}</p>
-                </div>
-                <button class="delete-vehicle-btn-profile"
-                        data-vehicle-index="${index}"
-                        data-make="${vehicle.make}"
-                        data-model="${vehicle.model}"
-                        data-year="${vehicle.year}"
-                        data-created-at="${vehicle.createdAt}"
-                        aria-label="Remove ${vehicle.year} ${vehicle.make} ${vehicle.model} from profile">Remove</button>
-            `;
-            vehiclesListDiv.appendChild(vehicleCard);
-        });
-
-        vehiclesListDiv.querySelectorAll('.delete-vehicle-btn-profile').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const vehicleToDelete = {
-                    make: e.target.dataset.make,
-                    model: e.target.dataset.model,
-                    year: parseInt(e.target.dataset.year),
-                    createdAt: parseInt(e.target.dataset.createdAt) // Make sure this matches the type in Firestore (number from Date.now())
-                };
-                if (confirm('Are you sure you want to remove this vehicle from your garage?')) {
-                    const user = auth.currentUser;
-                    if (user) {
-                        try {
-                            await deleteVehicleFromArray(vehicleToDelete, e.target);
-                            showNotification('Vehicle removed from your garage.', 'success');
-                            loadProfileVehicles(user.uid);
-                        } catch (error) {
-                            console.error('[Profile ERROR] Error removing vehicle from profile:', error);
-                            showNotification('Failed to remove vehicle from profile.', 'error');
-                        }
-                    }
+        setTimeout(async () => {
+                        await renderSavedVehicles();
+                        await loadVehicleForProducts();
+                    });
                 }
-            });
-        });
-
-    } catch (error) {
-        console.error("[Profile ERROR] Error loading profile vehicles:", error);
-        noVehiclesMessageElement.textContent = 'Error loading your saved vehicles. Please try again.';
-        noVehiclesMessageElement.style.display = 'block';
-        vehiclesListDiv.appendChild(noVehiclesMessageElement);
-        showNotification("Error loading saved vehicles for profile: " + error.message, "error");
-    }
-}
-
-
-// Placeholder function for loading order history
-function loadOrderHistory(userId) {
-    const orderListDiv = document.getElementById('orderHistoryList');
-    if (!orderListDiv) {
-        console.warn("[DOM] Order history list element not found (loadOrderHistory).");
-        return;
-    }
-
-    if (userId) {
-        orderListDiv.innerHTML = '<p class="no-items-message">Loading order history...</p>';
-        console.log(`[Firestore] Attempting to load order history for user: ${userId}`);
-
-        // If you're ready to implement actual order history:
-        /*
-        const ordersCollectionRef = collection(db, 'orders');
-        const q = query(ordersCollectionRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
-
-        getDocs(q).then(snapshot => {
-            if (snapshot.empty) {
-                orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
-                console.log("[Firestore] No orders found for user.");
-                return;
+                catch (error) {
+                    console.error("[Garage ERROR] Error deleting vehicle:", error);
+                    showNotification("Error deleting vehicle: " + error.message, "error", 5000);
+                }
+                finally {
+                    setButtonLoading(button, false);
+                }
             }
-            orderListDiv.innerHTML = '';
-            console.log(`[Firestore] Found ${snapshot.docs.length} orders.`);
-            snapshot.forEach(orderDoc => {
-                const order = orderDoc.data();
-                const orderCard = document.createElement('div');
-                orderCard.className = 'card order-card';
-                orderCard.innerHTML = `
-                    <h5>Order #${orderDoc.id.substring(0, 8)}</h5>
-                    <p>Date: ${order.createdAt ? new Date(order.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
-                    <p>Total: $${order.total ? order.total.toFixed(2) : 'N/A'}</p>
-                    <p>Status: ${order.status || 'Processing'}</p>
-                    <button class="view-order-details-btn">View Details</button>
-                `;
-                orderListDiv.appendChild(orderCard);
-            });
-        }).catch(error => {
-            console.error("[Firestore ERROR] Error loading order history:", error);
-            orderListDiv.innerHTML = '<p class="no-items-message">Error loading order history.</p>';
-            showNotification("Error loading order history.", "error");
-        });
-        */
-        setTimeout(() => {
-            orderListDiv.innerHTML = '<p class="no-items-message">No past orders found. Start shopping today!</p>';
-        }, 500);
-
-    } else {
-        orderListDiv.innerHTML = '<p class="no-items-message">Please log in to see your order history.</p>';
-        console.log("[OrderHistory] User not logged in. Displaying login prompt for orders.");
-    }
-}
-
-
-function checkPasswordStrength(password) {
-    let score = 0;
-    if (password.length > 5) score++;
-    if (password.length > 7) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-
-    if (score < 3) return 'weak';
-    if (score < 5) return 'medium';
-    return 'strong';
-}
-
-function updatePasswordStrengthIndicator(strength) {
-    if (document.getElementById('passwordStrength')) {
-        document.getElementById('passwordStrength').textContent = `Strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
-        document.getElementById('passwordStrength').className = `password-strength ${strength}`;
-    }
-}
