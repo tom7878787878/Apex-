@@ -147,7 +147,7 @@ window.showPage = function(id) {
     } else if (id === 'profile') {
         loadProfile();
     } else if (id === 'ai-assistant') {
-        loadAIAssistantPage(); // NEW: Load AI assistant page content
+        loadAIAssistantPage();
     }
 }
 
