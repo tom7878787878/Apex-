@@ -1,9 +1,15 @@
-[[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
+[build]
+  # Run your Remix build
+  command = "npm run build"
 
+  # Remix outputs the browser bundle here
+  publish = "build/client"
+
+  # Netlify will pick up your serverless functions here
+  functions = "netlify/functions"
+
+# Redirect everything through Remix
 [[redirects]]
-from = "/api/*"
-to = "/.netlify/functions/:splat"
-status = 200
+  from = "/*"
+  to = "/index.html"
+  status = 200
