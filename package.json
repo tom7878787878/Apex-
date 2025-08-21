@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+  "dev": "remix dev",
+  "build": "remix build",
+  "start": "netlify dev"
+},
+  "scripts": {
     "dev": "remix vite:dev",
     "build": "remix vite:build",
     "preview": "remix vite:preview",
