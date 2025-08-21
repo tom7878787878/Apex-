@@ -1,15 +1,10 @@
 [build]
-  # Run your Remix build
   command = "npm run build"
-
-  # Remix outputs the browser bundle here
   publish = "build/client"
 
-  # Netlify will pick up your serverless functions here
-  functions = "netlify/functions"
+[functions]
+  directory = "netlify/functions"
 
-# Redirect everything through Remix
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[dev]
+  command = "npm run dev"
+  port = 8888
