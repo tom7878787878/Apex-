@@ -6,11 +6,7 @@
   "scripts": {
     "dev": "remix dev",
     "build": "remix build",
-    "start": "netlify dev",
-    "preview": "remix dev",
-    "test": "vitest run",
-    "test:ui": "vitest",
-    "setup:assets": "bash scripts/setup-assets.sh"
+    "start": "netlify dev"
   },
   "dependencies": {
     "firebase": "^10.12.2",
@@ -22,12 +18,12 @@
     "@netlify/remix-adapter": "^2.6.1",
     "@remix-run/dev": "^2.17.0",
     "@remix-run/react": "^2.17.0",
-    "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^6.3.5",
+    "@vitejs/plugin-react": "^5.0.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^3.2.4"
   }

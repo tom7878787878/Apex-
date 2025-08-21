@@ -1,12 +1,8 @@
+# netlify.toml
 [build]
   command = "npm run build"
   publish = "build/client"
+  functions = "netlify/functions"
 
-[functions]
-  directory = "netlify/functions"
-
-[dev]
-  command = "npm run dev"
-  port = 8888
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18" # ensures compatible Node.js version
