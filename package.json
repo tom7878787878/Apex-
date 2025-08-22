@@ -9,7 +9,9 @@
     "start": "netlify dev"
   },
   "dependencies": {
+    "@remix-run/node": "^2.17.0",
     "firebase": "^10.12.2",
+    "isbot": "^4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.3"
@@ -18,12 +20,12 @@
     "@netlify/remix-adapter": "^2.6.1",
     "@remix-run/dev": "^2.17.0",
     "@remix-run/react": "^2.17.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^6.3.5",
-    "@vitejs/plugin-react": "^5.0.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^3.2.4"
   }
