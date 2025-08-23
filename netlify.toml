@@ -1,19 +1,19 @@
 [build]
-  command = "npm run build"
+  # This should match your Remix output folder
   publish = "dist"
-
-[functions]
-  directory = "netlify/functions"
+  command = "npm run build"
 
 [dev]
+  # Local dev command
   command = "npm run dev"
-  port = 8888
-
-[build.environment]
-  NODE_VERSION = "20"
+  port = 3000
 
 [[redirects]]
+  # SPA fallback: all routes served by index.html
   from = "/*"
   to = "/index.html"
   status = 200
 
+[functions]
+  # If you have Netlify Functions (like ai-diagnose)
+  directory = "netlify/functions"
