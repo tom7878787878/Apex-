@@ -2,8 +2,7 @@
   command = "npm run build"
   publish = "build/client"
 [functions]
-  directory = "netlify/functions"
-
+functions = ["netlify/functions/ai-diagnose.ts"]
 [build.environment]
   NODE_VERSION = "20"
 
