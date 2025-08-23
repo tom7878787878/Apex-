@@ -1,18 +1,9 @@
 [build]
   command = "npm run build"
   publish = "build/client"
- functions = "netlify/functions"
 [functions]
   directory = "netlify/functions"
-
-[dev]
-  command = "npm run dev"
-  port = 8888
-  targetPort = 3000
 
 [build.environment]
   NODE_VERSION = "20"
 
-
-[[plugins]]
-  package = "@netlify/remix-adapter"
