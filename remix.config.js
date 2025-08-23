@@ -1,8 +1,10 @@
-/** @type {import('@remix-run/dev').AppConfig} */
-export default {
-  ignoredRouteFiles: ["**/.*"],
-  serverModuleFormat: "esm",
-  serverPlatform: "neutral",
-  serverBuildTarget: "netlify",
-  server: "./server.js",   // 👈 this must exist in root
+/**
+ * @type {import('@remix-run/dev').AppConfig}
+ */
+module.exports = {
+  appDirectory: "app",
+  assetsBuildDirectory: "public/build",
+  publicPath: "/build/",
+  serverBuildTarget: "@remix-run/netlify",
+  devServerPort: 8002,
 };
